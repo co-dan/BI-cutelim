@@ -1,0 +1,14 @@
+-Q theories bunched
+-Q iris-mod iris_mod
+-arg -w -arg -notation-overridden
+
+iris-mod/bi/interface.v
+iris-mod/bi/derived_connectives.v
+iris-mod/bi/derived_laws.v
+# iris-mod/bi/derived_laws_later.v
+iris-mod/bi/bi.v
+
+theories/seqcalc.v
+theories/interp.v
+theories/seqcalc_height.v
+theories/cutelim.v
