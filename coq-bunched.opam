@@ -1,0 +1,15 @@
+opam-version: "1.2"
+name: "coq-bunched"
+synopsis: "Semantic proof of cut elimination for the logic of bunched implications"
+maintainer: "Dan Frumin <dan@groupoid.moe>"
+authors: "Dan Frumin"
+license: "BSD"
+homepage: "http://github.com/co-dan/BI-cutelim"
+bug-reports: "http://github.com/co-dan/BI-cutelim/issue"
+dev-repo: "http://github.com/co-dan/BI-cutelim.git"
+build: [make "-j%{jobs}%"]
+install: [make "install"]
+remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/bunched"]
+depends: [
+  "coq-iris" { (= "3.4.0") | (= "dev") }
+]
