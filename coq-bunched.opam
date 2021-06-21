@@ -7,7 +7,7 @@ authors: "Dan Frumin"
 license: "BSD"
 homepage: "http://github.com/co-dan/BI-cutelim"
 bug-reports: "http://github.com/co-dan/BI-cutelim/issue"
-dev-repo: "http://github.com/co-dan/BI-cutelim.git"
+dev-repo: "git+http://github.com/co-dan/BI-cutelim.git"
 build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/bunched"]
