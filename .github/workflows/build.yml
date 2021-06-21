@@ -11,7 +11,7 @@ on:
       - '**'
 jobs:
   build:
-    runs-on: ubuntu-latest  # container actions require GNU/Linux
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         coq_version:
@@ -20,8 +20,8 @@ jobs:
         ocaml_version:
           - '4.07-flambda'
           - '4.11-flambda'
-        max-parallel: 4
-        fail-fast: false  # don't stop jobs if one fails
+      max-parallel: 4
+      fail-fast: false  # don't stop jobs if one fails
     steps:
       # See https://github.com/coq-community/docker-coq-action#readme
       # for details on docker-coq-action's syntax and provided features.
