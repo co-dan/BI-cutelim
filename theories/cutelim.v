@@ -810,8 +810,8 @@ Proof.
       simpl. by apply Hϕ.
     + intros Δ H1. simpl.
       constructor. apply IH22.
-      by apply H1.
-Qed.
+     by apply H1.
+Defined.
 
 End Cl.
 
@@ -835,7 +835,21 @@ Proof.
     apply pas_de_deux. }
   simpl. rewrite -H2.
   apply bunch_interp_fill_mono, H1.
-Qed.
+Defined.
 
 (* Print Assumptions cut. *)
 (*  ==> Closed under the global context *)
+
+
+Definition A := ATOM 0.
+Definition B := ATOM 1.
+Definition pf1 := id_ext (SEP A B).
+Definition pf2 := sep_l_inv [] _ _ _ pf1.
+Definition pf3 := cut [] _ _ _ pf2 pf1.
+Eval compute in pf2.
+Example sss : pf2 = pf3.
+Proof.
+  unfold pf2, pf3, pf1.
+  vm_compute.
+Eval compute in pf3.
+Eval compute in (wand_r_inv _ _ _ pf).

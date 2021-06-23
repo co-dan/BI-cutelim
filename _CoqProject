@@ -9,6 +9,7 @@ iris-mod/bi/derived_laws.v
 iris-mod/bi/bi.v
 
 theories/seqcalc.v
+theories/bunch_equiv_lemma.v
 theories/interp.v
 theories/seqcalc_height.v
 theories/cutelim.v

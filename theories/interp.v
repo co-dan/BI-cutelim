@@ -96,7 +96,10 @@ Section interp.
     by apply bunch_interp_fill_item_mono.
   Qed.
 
-  Global Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.
+  Lemma bunch_interp_proper Δ1 Δ2 :
+    Δ1 =? Δ2 
+  | _ => 
+  Global Instance bunch_interp_proper : Proper ((bunch_equiv) ==> (≡)) bunch_interp.
   Proof.
     intros Δ1 Δ2. induction 1; eauto.
     - etrans; eassumption.
