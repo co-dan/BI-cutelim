@@ -30,8 +30,8 @@ Inductive bunch : Type :=
 | semic (Δ1 Δ2 : bunch)
 .
 
-Local Infix ";," := semic (at level 80, right associativity) : bunch_scope.
-Local Infix ",," := comma (at level 80, right associativity) : bunch_scope.
+Notation "Δ ';,' Γ" := (semic Δ%B Γ%B) (at level 80, right associativity) : bunch_scope.
+Notation "Δ ',,' Γ" := (comma Δ%B Γ%B) (at level 80, right associativity) : bunch_scope.
 
 (** "Collapse" internalizes the bunch as a formula. *)
 Fixpoint collapse (Δ : bunch) : formula :=
@@ -51,6 +51,8 @@ Fixpoint bunch_map (f : formula → formula) (Δ : bunch) : bunch :=
   | (Δ ,, Δ') => (bunch_map f Δ,, bunch_map f Δ')
   | (Δ ;, Δ') => (bunch_map f Δ;, bunch_map f Δ')
   end%B.
+
+Infix "<·>" := bunch_map (at level 61, left associativity) : stdpp_scope.
 
 (** Bunched contexts with a hole *)
 Inductive bunch_ctx_item : Type :=
@@ -110,8 +112,8 @@ Inductive proves : bunch → formula → Prop :=
     (fill Π (frml ϕ) ⊢ᴮ ψ) →
     fill Π (frml (BOX ϕ)) ⊢ᴮ ψ
 | BI_Box_R Δ ϕ :
-    (bunch_map BOX Δ ⊢ᴮ ϕ) →
-    bunch_map BOX Δ ⊢ᴮ BOX ϕ
+    (BOX <·> Δ ⊢ᴮ ϕ) →
+    BOX <·> Δ ⊢ᴮ BOX ϕ
 (* multiplicatives *)
 | BI_Emp_R :
     empty ⊢ᴮ EMP
@@ -177,13 +179,12 @@ Inductive bunch_decomp :
     bunch_decomp (Δ1;,Δ2)%B (Π ++ [CtxSemicR Δ1]) Δ.
 
 (** Auxiliary functions: map for bunch_ctx *)
-(* TODO: Use the right typeclass *)
-Fixpoint bunch_ctx_item_map (f : formula → formula) (F : bunch_ctx_item) :=
+Definition bunch_ctx_item_map (f : formula → formula) (F : bunch_ctx_item) :=
   match F with
-  | CtxCommaL Δ => CtxCommaL (bunch_map f Δ)
-  | CtxCommaR Δ => CtxCommaR (bunch_map f Δ)
-  | CtxSemicL Δ => CtxSemicL (bunch_map f Δ)
-  | CtxSemicR Δ => CtxSemicR (bunch_map f Δ)
+  | CtxCommaL Δ => CtxCommaL (f <·> Δ)
+  | CtxCommaR Δ => CtxCommaR (f <·> Δ)
+  | CtxSemicL Δ => CtxSemicL (f <·> Δ)
+  | CtxSemicR Δ => CtxSemicR (f <·> Δ)
   end.
 
 Definition bunch_ctx_map (f : formula → formula) (Π : bunch_ctx) := map (bunch_ctx_item_map f) Π.
@@ -366,15 +367,28 @@ Proof.
     intros A. apply HC.
 Qed.
 
-Lemma bunch_ctx_map_fill f Π Δ :
-  bunch_map f (fill Π Δ) = fill (bunch_ctx_map f Π) (bunch_map f Δ).
+Lemma bunch_map_fill f Π Δ :
+  f <·> (fill Π Δ) = fill (bunch_ctx_map f Π) (f <·> Δ).
 Proof.
   revert Δ. induction Π as [|F Π IH] =>Δ/=//.
   rewrite IH. f_equiv. by destruct F; simpl.
 Qed.
 
+Global Instance bunch_map_proper f : Proper ((≡) ==> (≡)) (bunch_map f).
+Proof.
+  intros Δ1 Δ2 HD. induction HD; simpl; eauto.
+  - etrans; eauto.
+  - rewrite !bunch_map_fill. by f_equiv.
+  - by rewrite left_id.
+  - by rewrite comm.
+  - by rewrite assoc.
+  - by rewrite left_id.
+  - by rewrite comm.
+  - by rewrite assoc.
+Qed.
+
 Lemma bunch_decomp_box Δ Π ϕ :
-  bunch_decomp (bunch_map BOX Δ) Π (frml (BOX ϕ)) →
+  bunch_decomp (BOX <·> Δ) Π (frml (BOX ϕ)) →
   ∃ Π', Π = bunch_ctx_map BOX Π' ∧ bunch_decomp Δ Π' (frml ϕ).
 Proof.
   revert Π. induction Δ=>/= Π H1; try by inversion H1.
@@ -400,9 +414,10 @@ Proof.
         by econstructor.
 Qed.
 
+(** Some convenient derived rules *)
 Lemma BI_Boxes_L Π Δ ϕ :
   (fill Π Δ ⊢ᴮ ϕ) →
-  (fill Π (bunch_map BOX Δ) ⊢ᴮ ϕ).
+  (fill Π (BOX <·> Δ) ⊢ᴮ ϕ).
 Proof.
   revert Π. induction Δ=> Π IH /=; eauto.
   - by apply BI_Box_L.
@@ -412,5 +427,15 @@ Proof.
     apply (IHΔ2 ((CtxSemicR Δ1)::Π)). done.
 Qed.
 
-Notation "Δ ';,' Γ" := (semic Δ%B Γ%B) (at level 80, right associativity) : bunch_scope.
-Notation "Δ ',,' Γ" := (comma Δ%B Γ%B) (at level 80, right associativity) : bunch_scope.
+Lemma BI_Collapse_L Π Δ ϕ :
+  (fill Π Δ ⊢ᴮ ϕ) →
+  (fill Π (frml (collapse Δ)) ⊢ᴮ ϕ).
+Proof.
+  revert Π. induction Δ=> Π IH /=; try by econstructor; eauto.
+  - apply BI_Sep_L.
+    apply (IHΔ1 ((CtxCommaL (frml (collapse Δ2)))::Π)). simpl.
+    apply (IHΔ2 ((CtxCommaR Δ1)::Π)). done.
+  - apply BI_Conj_L.
+    apply (IHΔ1 ((CtxSemicL (frml (collapse Δ2)))::Π)). simpl.
+    apply (IHΔ2 ((CtxSemicR Δ1)::Π)). done.
+Qed.

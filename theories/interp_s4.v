@@ -9,8 +9,8 @@ Class BiBox (PROP : bi) (box : PROP → PROP) :=
   { bi_box_mono P Q : (P ⊢ Q) → (box P ⊢ box Q);
     bi_box_elim P : box P ⊢ P;
     bi_box_idem P : box P ⊢ box (box P);
-    bi_box_conj P Q : (box P) ∧ (box Q) ⊣⊢ box (P ∧ Q);
-    bi_box_sep P Q : (box P) ∗ (box Q) ⊣⊢ box (P ∗ Q);
+    bi_box_conj P Q : (box P) ∧ (box Q) ⊢ box (P ∧ Q);
+    bi_box_sep P Q : (box P) ∗ (box Q) ⊢ box (P ∗ Q);
     bi_box_true : True ⊢ box True;
     bi_box_emp : emp ⊢ box emp;
   }.
@@ -111,8 +111,22 @@ Section interp.
   Qed.
 
   Lemma bunch_interp_box Δ :
-    bunch_interp (bunch_map BOX Δ) ≡ box (bunch_interp Δ).
-  Proof. Admitted.
+    bunch_interp (bunch_map BOX Δ) ⊢ box (bunch_interp Δ).
+  Proof.
+    induction Δ; simpl; eauto.
+    - apply bi_box_true.
+    - apply bi_box_emp.
+    - rewrite IHΔ1 IHΔ2. apply bi_box_sep.
+    - rewrite IHΔ1 IHΔ2. apply bi_box_conj.
+  Qed.
+  Lemma bunch_interp_box_idem Δ :
+    bunch_interp (bunch_map BOX Δ) ⊢ bunch_interp (bunch_map BOX (bunch_map BOX Δ)).
+  Proof.
+    induction Δ; simpl; eauto.
+    - apply bi_box_idem.
+    - by rewrite IHΔ1 IHΔ2.
+    - by rewrite IHΔ1 IHΔ2.
+  Qed.
 
   Global Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.
   Proof.
@@ -148,10 +162,8 @@ Section interp.
       apply bi.and_intro; eauto.
     - apply bunch_interp_fill_mono; simpl.
       apply bi_box_elim.
-    - rewrite bunch_interp_box.
-      rewrite bi_box_idem.
-      apply bi_box_mono.
-      rewrite -bunch_interp_box. apply IHproves.
+    - rewrite bunch_interp_box_idem bunch_interp_box.
+      apply bi_box_mono, IHproves.
     - by rewrite IHproves1 IHproves2.
     - by apply bi.wand_intro_r.
     - rewrite -IHproves2.

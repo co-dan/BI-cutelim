@@ -309,8 +309,8 @@ Module bunchHeight.
       (fill Π (frml ϕ) ⊢ᴮ{n} ψ) →
       fill Π (frml (BOX ϕ)) ⊢ᴮ{S n} ψ
   | BI_Box_R Δ ϕ n :
-      (bunch_map BOX Δ ⊢ᴮ{n} ϕ) →
-      bunch_map BOX Δ ⊢ᴮ{S n} BOX ϕ
+      (BOX <·> Δ ⊢ᴮ{n} ϕ) →
+      BOX <·> Δ ⊢ᴮ{S n} BOX ϕ
     (* multiplicatives *)
   | BI_Emp_R :
       empty ⊢ᴮ{0} EMP
@@ -524,10 +524,10 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_box in Heq.
       destruct Heq as (Π' & -> & ->%bunch_decomp_correct).
-      change (frml (BOX ϕ)) with (bunch_map BOX (frml ϕ)).
-      rewrite -(bunch_ctx_map_fill BOX). apply BI_Box_R.
-      rewrite bunch_ctx_map_fill /=. eapply IHproves; eauto.
-      rewrite bunch_ctx_map_fill //.
+      change (frml (BOX ϕ)) with (BOX <·> (frml ϕ)).
+      rewrite -(bunch_map_fill BOX). apply BI_Box_R.
+      rewrite bunch_map_fill /=. eapply IHproves; eauto.
+      rewrite bunch_map_fill //.
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -1576,7 +1576,9 @@ Module bunchHeight.
 End bunchHeight.
 
 (** Derivable rules / inversion lemmas *)
-Lemma impl_r_inv Δ ϕ ψ :
+Module Inversion.
+
+Lemma Impl_R Δ ϕ ψ :
   (Δ ⊢ᴮ IMPL ϕ ψ) →
   (Δ ;, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
@@ -1584,7 +1586,7 @@ Proof.
   eapply bunchHeight.provesN_proves.
   by apply bunchHeight.impl_r_inv.
 Qed.
-Lemma wand_r_inv Δ ϕ ψ :
+Lemma Wand_R Δ ϕ ψ :
   (Δ ⊢ᴮ WAND ϕ ψ) →
   (Δ ,, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
@@ -1592,7 +1594,7 @@ Proof.
   eapply bunchHeight.provesN_proves.
   by apply bunchHeight.wand_r_inv.
 Qed.
-Lemma sep_l_inv C ϕ ψ χ :
+Lemma Sep_L C ϕ ψ χ :
   (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
   (fill C (frml ϕ,, frml ψ) ⊢ᴮ χ).
 Proof.
@@ -1600,7 +1602,7 @@ Proof.
   eapply bunchHeight.provesN_proves.
   eapply bunchHeight.sep_l_inv'; eauto.
 Qed.
-Lemma conj_l_inv C ϕ ψ χ :
+Lemma Conj_L C ϕ ψ χ :
   (fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
   (fill C (frml ϕ;, frml ψ) ⊢ᴮ χ).
 Proof.
@@ -1609,33 +1611,31 @@ Proof.
   eapply bunchHeight.conj_l_inv'; eauto.
 Qed.
 
-Lemma box_l_inv' Π Δ ϕ :
-  (fill Π (bunch_map BOX (bunch_map BOX Δ)) ⊢ᴮ ϕ) →
-  (fill Π (bunch_map BOX Δ) ⊢ᴮ ϕ).
+Lemma Box_L Π Δ ϕ :
+  (fill Π (BOX <·> (BOX <·> Δ)) ⊢ᴮ ϕ) →
+  (fill Π (BOX <·> Δ) ⊢ᴮ ϕ).
 Proof.
   revert Π. induction Δ; simpl; eauto.
   - intros Π [n H]%bunchHeight.proves_provesN.
     eapply bunchHeight.provesN_proves.
     eapply bunchHeight.box_l_inv'; eauto.
   - intros C H1.
-    replace (fill C (bunch_map BOX Δ1,, (bunch_map BOX Δ2)))%B
-      with (fill (CtxCommaR (bunch_map BOX Δ1)::C) (bunch_map BOX Δ2)) by reflexivity.
+    replace (fill C (BOX <·> Δ1,, (BOX <·> Δ2)))%B
+      with (fill (CtxCommaR (BOX <·> Δ1)::C) (BOX <·> Δ2)) by reflexivity.
     apply IHΔ2. simpl.
-    Admitted.
-  (*   replace (fill C (bunch_map BOX Δ1,, (bunch_map BOX (bunch_map BOX Δ2))))%B *)
-  (*     with (fill (CtxCommaL (bunch_map BOX Δ1)::C) (bunch_map BOX Δ2)) by reflexivity. *)
-  (*   apply IHΔ1. simpl. *)
-  (*   by apply sep_l_inv. *)
-  (* - intros C H1. *)
-  (*   replace (fill C (Δ1;, Δ2))%B *)
-  (*     with (fill (CtxSemicR Δ1::C) Δ2) by reflexivity. *)
-  (*   apply IHΔ2. simpl. *)
-  (*   replace (fill C (Δ1;, frml (collapse Δ2)))%B *)
-  (*     with (fill (CtxSemicL (frml (collapse Δ2))::C) Δ1) by reflexivity. *)
-  (*   apply IHΔ1. simpl. *)
-  (*   by apply conj_l_inv. *)
+    replace (fill C (BOX <·> Δ1,, BOX <·> (BOX <·> Δ2)))%B
+      with (fill (CtxCommaL (BOX <·> (BOX <·> Δ2))::C) (BOX <·> Δ1)) by reflexivity.
+    apply IHΔ1. simpl. done.
+  - intros C H1.
+    replace (fill C (BOX <·> Δ1;, (BOX <·> Δ2)))%B
+      with (fill (CtxSemicR (BOX <·> Δ1)::C) (BOX <·> Δ2)) by reflexivity.
+    apply IHΔ2. simpl.
+    replace (fill C (BOX <·> Δ1;, BOX <·> (BOX <·> Δ2)))%B
+      with (fill (CtxSemicL (BOX <·> (BOX <·> Δ2))::C) (BOX <·> Δ1)) by reflexivity.
+    apply IHΔ1. simpl. done.
+Qed.
 
-Lemma collapse_l_inv C Δ ϕ :
+Lemma Collapse_L C Δ ϕ :
   (fill C (frml (collapse Δ)) ⊢ᴮ ϕ) →
   (fill C Δ ⊢ᴮ ϕ).
 Proof.
@@ -1653,7 +1653,7 @@ Proof.
     replace (fill C (Δ1,, frml (collapse Δ2)))%B
       with (fill (CtxCommaL (frml (collapse Δ2))::C) Δ1) by reflexivity.
     apply IHΔ1. simpl.
-    by apply sep_l_inv.
+    by apply Sep_L.
   - intros C H1.
     replace (fill C (Δ1;, Δ2))%B
       with (fill (CtxSemicR Δ1::C) Δ2) by reflexivity.
@@ -1661,5 +1661,7 @@ Proof.
     replace (fill C (Δ1;, frml (collapse Δ2)))%B
       with (fill (CtxSemicL (frml (collapse Δ2))::C) Δ1) by reflexivity.
     apply IHΔ1. simpl.
-    by apply conj_l_inv.
+    by apply Conj_L.
 Qed.
+
+End Inversion.
