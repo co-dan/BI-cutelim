@@ -855,6 +855,21 @@ Proof.
   - destruct IHA1 as [IH11 IH12].
     destruct IHA2 as [IH21 IH22].
     split.
+    + eapply C_intro=>ϕ Hϕ.
+      apply (BI_Disj_L []); simpl.
+      * eapply Hϕ. apply cl_unit.
+        by left.
+      * eapply Hϕ. apply cl_unit.
+        by right.
+    + rewrite IH12 IH22.
+      apply bi.or_elim.
+      * intros Δ HA1.
+        simpl. apply BI_Disj_R1; eauto.
+      * intros Δ HA2.
+        simpl. apply BI_Disj_R2; eauto.
+  - destruct IHA1 as [IH11 IH12].
+    destruct IHA2 as [IH21 IH22].
+    split.
     + apply (C_collapse _ [] (frml A1,, frml A2)%B); simpl. 
       apply cl_unit. exists (frml A1), (frml A2).
       repeat split; eauto.

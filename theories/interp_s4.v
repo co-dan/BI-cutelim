@@ -36,6 +36,7 @@ Section interp.
     | EMP => emp
     | BOT => False
     | ATOM a => s a
+    | DISJ ϕ ψ => formula_interp ϕ ∨ formula_interp ψ
     | CONJ ϕ ψ => formula_interp ϕ ∧ formula_interp ψ
     | SEP ϕ ψ => formula_interp ϕ ∗ formula_interp ψ
     | IMPL ϕ ψ => formula_interp ϕ → formula_interp ψ
@@ -176,6 +177,67 @@ Section interp.
       all: by rewrite ?left_absorb ?right_absorb.
     - apply bi.True_intro.
     - by rewrite IHproves1 IHproves2.
+    - by apply bi.or_intro_l.
+    - by apply bi.or_intro_r.
+    - revert IHproves1 IHproves2. clear.
+      revert ϕ ψ.
+      induction Π as [|F Π] => /= ϕ ψ IH1 IH2.
+      { apply bi.or_elim; eauto. }
+      destruct F; simpl; simpl in IH1, IH2;
+      rewrite bunch_ctx_interp_decomp;
+      cbn[bunch_interp formula_interp].
+      + rewrite bi.sep_or_r.
+        unfold seq_interp in *.
+        etrans.
+        2:{ eapply (IHΠ (SEP ϕ (collapse Δ2)) (SEP ψ (collapse Δ2))).
+            - rewrite -IH1.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse.
+            - rewrite -IH2.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse. }
+        rewrite bunch_ctx_interp_decomp.
+        cbn[bunch_interp formula_interp].
+        by rewrite bunch_interp_collapse.
+      + rewrite bi.sep_or_l.
+        unfold seq_interp in *.
+        etrans.
+        2:{ eapply (IHΠ (SEP (collapse Δ1) ϕ) (SEP (collapse Δ1) ψ)).
+            - rewrite -IH1.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse.
+            - rewrite -IH2.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse. }
+        rewrite bunch_ctx_interp_decomp.
+        cbn[bunch_interp formula_interp].
+        by rewrite bunch_interp_collapse.
+      + rewrite bi.and_or_r.
+        unfold seq_interp in *.
+        etrans.
+        2:{ eapply (IHΠ (CONJ ϕ (collapse Δ2)) (CONJ ψ (collapse Δ2))).
+            - rewrite -IH1.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse.
+            - rewrite -IH2.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse. }
+        rewrite bunch_ctx_interp_decomp.
+        cbn[bunch_interp formula_interp].
+        by rewrite bunch_interp_collapse.
+      + rewrite bi.and_or_l.
+        unfold seq_interp in *.
+        etrans.
+        2:{ eapply (IHΠ (CONJ (collapse Δ1) ϕ) (CONJ (collapse Δ1) ψ)).
+            - rewrite -IH1.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse.
+            - rewrite -IH2.
+              apply bunch_interp_fill_mono; simpl.
+              by rewrite bunch_interp_collapse. }
+        rewrite bunch_ctx_interp_decomp.
+        cbn[bunch_interp formula_interp].
+        by rewrite bunch_interp_collapse.
     - by apply bi.impl_intro_r.
     - rewrite -IHproves2.
       apply bunch_interp_fill_mono; simpl.

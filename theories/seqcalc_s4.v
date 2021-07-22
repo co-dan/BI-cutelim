@@ -16,6 +16,7 @@ Inductive formula : Type :=
 | BOT
 | ATOM (A : atom)
 | CONJ (ϕ ψ : formula)
+| DISJ (ϕ ψ : formula)
 | SEP (ϕ ψ : formula)
 | IMPL (ϕ ψ : formula)
 | WAND (ϕ ψ : formula)
@@ -149,6 +150,16 @@ Inductive proves : bunch → formula → Prop :=
 | BI_Conj_L C ϕ ψ χ :
     (fill C (frml ϕ ;, frml ψ) ⊢ᴮ χ) →
     fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ
+| BI_Disj_R1 Δ ϕ ψ :
+    (Δ ⊢ᴮ ϕ) →
+    Δ ⊢ᴮ DISJ ϕ ψ
+| BI_Disj_R2 Δ ϕ ψ :
+    (Δ ⊢ᴮ ψ) →
+    Δ ⊢ᴮ DISJ ϕ ψ
+| BI_Disj_L Π ϕ ψ χ :
+    (fill Π (frml ϕ) ⊢ᴮ χ) →
+    (fill Π (frml ψ) ⊢ᴮ χ) →
+    fill Π (frml (DISJ ϕ ψ)) ⊢ᴮ χ
 | BI_Impl_R Δ ϕ ψ :
     (Δ ;, frml ϕ ⊢ᴮ ψ) →
     Δ  ⊢ᴮ IMPL ϕ ψ

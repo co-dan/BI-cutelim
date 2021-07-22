@@ -18,9 +18,9 @@ Module bunchHeight.
 
   (** ** Alternative formulation of bunch equivalences *)
   Inductive bunch_equiv : bunch → bunch → Prop :=
-  | BE_cong C Δ1 Δ2 :
+  | BE_cong Π Δ1 Δ2 :
       Δ1 =? Δ2 →
-      fill C Δ1 =? fill C Δ2
+      fill Π Δ1 =? fill Π Δ2
   | BE_comma_unit_l Δ :
       (empty ,, Δ)%B =? Δ
   | BE_comma_comm Δ1 Δ2 :
@@ -59,13 +59,13 @@ Module bunchHeight.
       intros X Y ?. by econstructor.
   Qed.
 
-  Local Lemma bunch_equiv_fill_1 Δ C ϕ :
-    fill C (frml ϕ) =? Δ →
-    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+  Local Lemma bunch_equiv_fill_1 Δ Π ϕ :
+    fill Π (frml ϕ) =? Δ →
+    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill Π Δ).
   Proof.
     intros Heq.
-    remember (fill C (frml ϕ)) as Y.
-    revert C HeqY.
+    remember (fill Π (frml ϕ)) as Y.
+    revert Π HeqY.
     induction Heq=>C' heqY; symmetry in heqY.
     + apply bunch_decomp_complete in heqY.
       apply bunch_decomp_ctx in heqY.
@@ -73,7 +73,7 @@ Module bunchHeight.
       * destruct H1 as [C1 [HC0%bunch_decomp_correct HC]].
         destruct (IHHeq C1 HC0) as [C2 [HΔ1 HC2]].
         simplify_eq/=.
-        exists (C2 ++ C). rewrite fill_app. split; first done.
+        exists (C2 ++ Π). rewrite fill_app. split; first done.
         intros Δ. rewrite !fill_app HC2 //.
       * destruct H2 as (C1 & C2 & HC1 & HC2 & Hdec0).
         specialize (Hdec0 Δ2). apply bunch_decomp_correct in Hdec0.
@@ -166,13 +166,13 @@ Module bunchHeight.
            by rewrite assoc.
   Qed.
 
-  Local Lemma bunch_equiv_fill_2 Δ C ϕ :
-    Δ =? fill C (frml ϕ) →
-    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+  Local Lemma bunch_equiv_fill_2 Δ Π ϕ :
+    Δ =? fill Π (frml ϕ) →
+    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill Π Δ).
   Proof.
     intros Heq.
-    remember (fill C (frml ϕ)) as Y.
-    revert C HeqY.
+    remember (fill Π (frml ϕ)) as Y.
+    revert Π HeqY.
     induction Heq=>C' heqY; symmetry in heqY.
     + apply bunch_decomp_complete in heqY.
       apply bunch_decomp_ctx in heqY.
@@ -180,7 +180,7 @@ Module bunchHeight.
       * destruct H1 as [C1 [HC0%bunch_decomp_correct HC]].
         destruct (IHHeq C1 HC0) as [C2 [HΔ1 HC2]].
         simplify_eq/=.
-        exists (C2 ++ C). rewrite fill_app. split; first done.
+        exists (C2 ++ Π). rewrite fill_app. split; first done.
         intros Δ. rewrite !fill_app HC2 //.
       * destruct H2 as (C1 & C2 & HC1 & HC2 & Hdec0).
         specialize (Hdec0 Δ1). apply bunch_decomp_correct in Hdec0.
@@ -269,13 +269,13 @@ Module bunchHeight.
            by rewrite assoc.
   Qed.
 
-  Lemma bunch_equiv_fill Δ C ϕ :
-    Δ ≡ (fill C (frml ϕ)) →
-    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+  Lemma bunch_equiv_fill Δ Π ϕ :
+    Δ ≡ (fill Π (frml ϕ)) →
+    ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill Π Δ).
   Proof.
     intros H%bunch_equiv_2.
     revert Δ H. eapply rtc_ind_l.
-    { exists C. eauto. }
+    { exists Π. eauto. }
     intros X Y HXY HY. clear HY.
     intros (C0 & -> & HC0).
     destruct HXY as [HXY|HXY].
@@ -297,13 +297,13 @@ Module bunchHeight.
   | BI_Equiv Δ Δ' ϕ n :
       (Δ ≡ Δ') → (Δ ⊢ᴮ{n} ϕ) →
       Δ' ⊢ᴮ{S n} ϕ
-  | BI_Weaken C Δ Δ' ϕ n : (fill C Δ ⊢ᴮ{n} ϕ) →
-                         fill C (Δ ;, Δ') ⊢ᴮ{S n} ϕ
-  | BI_Contr C Δ ϕ n : (fill C (Δ ;, Δ) ⊢ᴮ{n} ϕ) →
-                     fill C Δ ⊢ᴮ{S n} ϕ
-  (* | BI_Cut C Δ ϕ ψ : (Δ ⊢ᴮ ψ) → *)
-  (*                    (fill C (frml ψ) ⊢ᴮ ϕ) → *)
-  (*                    fill C Δ ⊢ᴮ ϕ *)
+  | BI_Weaken Π Δ Δ' ϕ n : (fill Π Δ ⊢ᴮ{n} ϕ) →
+                         fill Π (Δ ;, Δ') ⊢ᴮ{S n} ϕ
+  | BI_Contr Π Δ ϕ n : (fill Π (Δ ;, Δ) ⊢ᴮ{n} ϕ) →
+                     fill Π Δ ⊢ᴮ{S n} ϕ
+  (* | BI_Cut Π Δ ϕ ψ : (Δ ⊢ᴮ ψ) → *)
+  (*                    (fill Π (frml ψ) ⊢ᴮ ϕ) → *)
+  (*                    fill Π Δ ⊢ᴮ ϕ *)
   (* modal *)
   | BI_Box_L Π ϕ ψ n :
       (fill Π (frml ϕ) ⊢ᴮ{n} ψ) →
@@ -314,51 +314,64 @@ Module bunchHeight.
     (* multiplicatives *)
   | BI_Emp_R :
       empty ⊢ᴮ{0} EMP
-  | BI_Emp_L C ϕ n :
-      (fill C empty ⊢ᴮ{n} ϕ) →
-      fill C (frml EMP) ⊢ᴮ{S n} ϕ
+  | BI_Emp_L Π ϕ n :
+      (fill Π empty ⊢ᴮ{n} ϕ) →
+      fill Π (frml EMP) ⊢ᴮ{S n} ϕ
   | BI_Sep_R Δ Δ' ϕ ψ n m :
       (Δ ⊢ᴮ{n} ϕ) →
       (Δ' ⊢ᴮ{m} ψ) →
       Δ ,, Δ' ⊢ᴮ{S (n `max` m)} SEP ϕ ψ
-  | BI_Sep_L C ϕ ψ χ n :
-      (fill C (frml ϕ ,, frml ψ) ⊢ᴮ{n} χ) →
-      fill C (frml (SEP ϕ ψ)) ⊢ᴮ{S n} χ
+  | BI_Sep_L Π ϕ ψ χ n :
+      (fill Π (frml ϕ ,, frml ψ) ⊢ᴮ{n} χ) →
+      fill Π (frml (SEP ϕ ψ)) ⊢ᴮ{S n} χ
   | BI_Wand_R Δ ϕ ψ n :
       (Δ ,, frml ϕ ⊢ᴮ{n} ψ) →
       Δ  ⊢ᴮ{S n} WAND ϕ ψ
-  | BI_Wand_L C Δ ϕ ψ χ n m :
+  | BI_Wand_L Π Δ ϕ ψ χ n m :
       (Δ ⊢ᴮ{n} ϕ) →
-      (fill C (frml ψ) ⊢ᴮ{m} χ) →
-      fill C (Δ ,, frml (WAND ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
+      (fill Π (frml ψ) ⊢ᴮ{m} χ) →
+      fill Π (Δ ,, frml (WAND ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
     (* additives *)
-  | BI_False_L C ϕ :
-      fill C (frml BOT) ⊢ᴮ{0} ϕ
+  | BI_False_L Π ϕ :
+      fill Π (frml BOT) ⊢ᴮ{0} ϕ
   | BI_True_R Δ :
       Δ ⊢ᴮ{0} TOP
-  | BI_True_L C ϕ n :
-      (fill C top ⊢ᴮ{n} ϕ) →
-      fill C (frml TOP) ⊢ᴮ{S n} ϕ
+  | BI_True_L Π ϕ n :
+      (fill Π top ⊢ᴮ{n} ϕ) →
+      fill Π (frml TOP) ⊢ᴮ{S n} ϕ
   | BI_Conj_R Δ Δ' ϕ ψ n m :
       (Δ ⊢ᴮ{n} ϕ) →
       (Δ' ⊢ᴮ{m} ψ) →
       Δ ;, Δ' ⊢ᴮ{S (n `max` m)} CONJ ϕ ψ
-  | BI_Conj_L C ϕ ψ χ n :
-      (fill C (frml ϕ ;, frml ψ) ⊢ᴮ{n} χ) →
-      fill C (frml (CONJ ϕ ψ)) ⊢ᴮ{S n} χ
+  | BI_Conj_L Π ϕ ψ χ n :
+      (fill Π (frml ϕ ;, frml ψ) ⊢ᴮ{n} χ) →
+      fill Π (frml (CONJ ϕ ψ)) ⊢ᴮ{S n} χ
+  | BI_Disj_R1 Δ ϕ ψ n :
+      (Δ ⊢ᴮ{n} ϕ) →
+      Δ ⊢ᴮ{S n} DISJ ϕ ψ
+  | BI_Disj_R2 Δ ϕ ψ n :
+      (Δ ⊢ᴮ{n} ψ) →
+      Δ ⊢ᴮ{S n} DISJ ϕ ψ
+  | BI_Disj_L Π ϕ ψ χ n m :
+      (fill Π (frml ϕ) ⊢ᴮ{n} χ) →
+      (fill Π (frml ψ) ⊢ᴮ{m} χ) →
+      fill Π (frml (DISJ ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
   | BI_Impl_R Δ ϕ ψ n :
       (Δ ;, frml ϕ ⊢ᴮ{n} ψ) →
       Δ  ⊢ᴮ{S n} IMPL ϕ ψ
-  | BI_Impl_L C Δ ϕ ψ χ n m:
+  | BI_Impl_L Π Δ ϕ ψ χ n m:
       (Δ ⊢ᴮ{n} ϕ) →
-      (fill C (frml ψ) ⊢ᴮ{m} χ) →
-      fill C (Δ ;, frml (IMPL ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
+      (fill Π (frml ψ) ⊢ᴮ{m} χ) →
+      fill Π (Δ ;, frml (IMPL ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
   where "Δ ⊢ᴮ{ n } ϕ" := (proves Δ%B ϕ%B n).
 
   Lemma provesN_proves n Δ ϕ :
     (Δ ⊢ᴮ{ n } ϕ) → Δ ⊢ᴮ ϕ.
   Proof.
     induction 1; eauto.
+    by econstructor; eauto.
+    by econstructor; eauto.
+    by econstructor; eauto.
     by econstructor; eauto.
     by econstructor; eauto.
     by econstructor; eauto.
@@ -393,13 +406,13 @@ Module bunchHeight.
   (** * Inversion lemmas *)
   Local Ltac bind_ctx :=
     match goal with
-    | [ |- fill ?C ?Δ,, ?Δ' ⊢ᴮ{_} _ ] =>
-      replace (fill C Δ,, Δ')%B
-      with (fill (C ++ [CtxCommaL Δ']) Δ)%B
+    | [ |- fill ?Π ?Δ,, ?Δ' ⊢ᴮ{_} _ ] =>
+      replace (fill Π Δ,, Δ')%B
+      with (fill (Π ++ [CtxCommaL Δ']) Δ)%B
       by rewrite fill_app//
-    | [ |- fill ?C ?Δ;, ?Δ' ⊢ᴮ{_} _ ] =>
-      replace (fill C Δ;, Δ')%B
-      with (fill (C ++ [CtxSemicL Δ']) Δ)%B
+    | [ |- fill ?Π ?Δ;, ?Δ' ⊢ᴮ{_} _ ] =>
+      replace (fill Π Δ;, Δ')%B
+      with (fill (Π ++ [CtxSemicL Δ']) Δ)%B
       by rewrite fill_app//
     end.
 
@@ -421,6 +434,10 @@ Module bunchHeight.
       by apply IHproves.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
+    - intros ?; simplify_eq/=.
+      bind_ctx. eapply BI_Disj_L.
+      + rewrite fill_app/=. by eapply IHproves1.
+      + rewrite fill_app/=. by eapply IHproves2.
     - commute_left_rule IHproves2.
   Qed.
 
@@ -437,6 +454,10 @@ Module bunchHeight.
       { rewrite -H. reflexivity. }
       by apply IHproves.
     - commute_left_rule IHproves2.
+    - intros ?; simplify_eq/=.
+      bind_ctx. eapply BI_Disj_L.
+      + rewrite fill_app/=. by eapply IHproves1.
+      + rewrite fill_app/=. by eapply IHproves2.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
   Qed.
@@ -474,7 +495,8 @@ Module bunchHeight.
           by apply bunch_decomp_correct, bunch_decomp_app.
         * rewrite !fill_app/=.
           by apply BI_Weaken.
-      + rename C into Π'.
+      + rename Π into Π'.
+        rename Π0 into Π0'.
         destruct H2 as (Π0 & Π1 & HΠ0 & HΠ1 & Hdec0).
         rewrite -HΠ1.
         apply BI_Weaken.
@@ -485,7 +507,8 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2]; last first.
-      + destruct H2 as (Π0 & Π1 & HΠ0 & HΠ1 & Hdec0).
+      + rename Π0 into Π0'.
+        destruct H2 as (Π0 & Π1 & HΠ0 & HΠ1 & Hdec0).
         rewrite -HΠ1.
         apply BI_Contr.
         rewrite -HΠ0.
@@ -494,16 +517,17 @@ Module bunchHeight.
       + destruct H1 as [C0 [HC0 ->]].
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
-        assert (fill C (fill C0 (frml (BOX ϕ));, fill C0 (frml (BOX (BOX ϕ)))) ⊢ᴮ{ n0} χ) as IH1.
+        rename Π0 into Π.
+        assert (fill Π (fill C0 (frml (BOX ϕ));, fill C0 (frml (BOX (BOX ϕ)))) ⊢ᴮ{ n0} χ) as IH1.
         { specialize (IHproves n0 (lt_n_Sn _)).
-          set (C2 := (C0 ++ [CtxSemicL (fill C0 (frml (BOX (BOX ϕ))))] ++ C)%B).
+          set (C2 := (C0 ++ [CtxSemicL (fill C0 (frml (BOX (BOX ϕ))))] ++ Π)%B).
           specialize (IHproves C2 _ _ H).
           revert IHproves. rewrite /C2 !fill_app /=.
           eauto. }
         rewrite fill_app.
         apply BI_Contr.
-        set (C2 := (C0 ++ [CtxSemicR (fill C0 (frml (BOX ϕ)))] ++ C)%B).
-        replace (fill C (fill C0 (frml (BOX ϕ));, fill C0 (frml (BOX ϕ))))%B
+        set (C2 := (C0 ++ [CtxSemicR (fill C0 (frml (BOX ϕ)))] ++ Π)%B).
+        replace (fill Π (fill C0 (frml (BOX ϕ));, fill C0 (frml (BOX ϕ))))%B
                    with (fill C2 (frml (BOX ϕ)))%B by rewrite fill_app//.
         eapply IHproves; eauto.
         rewrite /C2 fill_app/=//.
@@ -635,13 +659,35 @@ Module bunchHeight.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
       assert ((fill Π (frml (BOX ϕ));, frml ϕ0) =
                    fill (Π ++ [CtxSemicL (frml ϕ0)]) (frml (BOX ϕ)))%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
-    -       apply bunch_decomp_complete in Heq.
+    - (* impl L *)
+      apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
@@ -659,14 +705,14 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-  Lemma sep_l_inv' Δ C ϕ ψ χ n :
+  Lemma sep_l_inv' Δ Π ϕ ψ χ n :
     (Δ ⊢ᴮ{n} χ) →
-    Δ = fill C (frml (SEP ϕ ψ)) →
-    (fill C (frml ϕ,, frml ψ) ⊢ᴮ{n} χ).
+    Δ = fill Π (frml (SEP ϕ ψ)) →
+    (fill Π (frml ϕ,, frml ψ) ⊢ᴮ{n} χ).
   Proof.
-    revert C Δ χ.
+    revert Π Δ χ.
     induction n using lt_wf_ind. rename H into IHproves.
-    intros C Δ χ PROOF Heq. symmetry in Heq. revert Heq.
+    intros Π Δ χ PROOF Heq. symmetry in Heq. revert Heq.
     inversion PROOF; simplify_eq/= => Heq.
     (* induction H => C' Heq; symmetry in Heq. *)
     - (* raising the pf height *)
@@ -694,7 +740,7 @@ Module bunchHeight.
           by apply bunch_decomp_correct, bunch_decomp_app.
         * rewrite !fill_app/=.
           by apply BI_Weaken.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Weaken.
@@ -705,14 +751,14 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2]; last first.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Contr.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H1 as [C0 [HC0 ->]].
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
@@ -745,7 +791,7 @@ Module bunchHeight.
       exfalso.
       apply bunch_decomp_complete in Heq.
       simplify_eq/=.
-      rename Δ0 into Δ. revert C Heq. clear.
+      rename Δ0 into Δ. revert Π Heq. clear.
       induction Δ as [ | | | Δ1 IH1 Δ2 IH2 | Δ1 IH1 Δ2 IH2] => Π /=;
          inversion 1; simplify_eq/=;
          solve [ by eapply IH1 | by eapply IH2 ].
@@ -759,7 +805,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Emp_L.
@@ -784,7 +830,7 @@ Module bunchHeight.
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
         by apply BI_Higher.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Sep_L.
@@ -793,8 +839,8 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
     - (* wand R *)
       apply BI_Wand_R.
-      assert ((fill C (frml ϕ,, frml ψ),, frml ϕ0) =
-                   fill (C ++ [CtxCommaL (frml ϕ0)]) (frml ϕ,, frml ψ))%B as ->.
+      assert ((fill Π (frml ϕ,, frml ψ),, frml ϕ0) =
+                   fill (Π ++ [CtxCommaL (frml ϕ0)]) (frml ϕ,, frml ψ))%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     - (* wand L *)
@@ -808,7 +854,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Wand_L; eauto.
@@ -821,7 +867,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_False_L.
@@ -832,7 +878,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_True_L.
@@ -856,17 +902,38 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Conj_L.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
-      assert ((fill C (frml ϕ,, frml ψ);, frml ϕ0) =
-                   fill (C ++ [CtxSemicL (frml ϕ0)]) (frml ϕ,, frml ψ))%B as ->.
+      assert ((fill Π (frml ϕ,, frml ψ);, frml ϕ0) =
+                   fill (Π ++ [CtxSemicL (frml ϕ0)]) (frml ϕ,, frml ψ))%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     -       apply bunch_decomp_complete in Heq.
@@ -879,7 +946,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Impl_L; eauto.
@@ -888,14 +955,14 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-  Lemma conj_l_inv' Δ C ϕ ψ χ n :
+  Lemma conj_l_inv' Δ Π ϕ ψ χ n :
     (Δ ⊢ᴮ{n} χ) →
-    Δ = fill C (frml (CONJ ϕ ψ)) →
-    (fill C (frml ϕ;, frml ψ) ⊢ᴮ{n} χ).
+    Δ = fill Π (frml (CONJ ϕ ψ)) →
+    (fill Π (frml ϕ;, frml ψ) ⊢ᴮ{n} χ).
   Proof.
-    revert C Δ χ.
+    revert Π Δ χ.
     induction n using lt_wf_ind. rename H into IHproves.
-    intros C Δ χ PROOF Heq. symmetry in Heq. revert Heq.
+    intros Π Δ χ PROOF Heq. symmetry in Heq. revert Heq.
     inversion PROOF; simplify_eq/= => Heq.
     (* induction H => C' Heq; symmetry in Heq. *)
     - (* raising the pf height *)
@@ -923,7 +990,7 @@ Module bunchHeight.
           by apply bunch_decomp_correct, bunch_decomp_app.
         * rewrite !fill_app/=.
           by apply BI_Weaken.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Weaken.
@@ -934,14 +1001,14 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2]; last first.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Contr.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H1 as [C0 [HC0 ->]].
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
@@ -974,7 +1041,7 @@ Module bunchHeight.
       exfalso.
       apply bunch_decomp_complete in Heq.
       simplify_eq/=.
-      rename Δ0 into Δ. revert C Heq. clear.
+      rename Δ0 into Δ. revert Π Heq. clear.
       induction Δ as [ | | | Δ1 IH1 Δ2 IH2 | Δ1 IH1 Δ2 IH2] => Π /=;
          inversion 1; simplify_eq/=;
          solve [ by eapply IH1 | by eapply IH2 ].
@@ -988,7 +1055,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Emp_L.
@@ -1012,7 +1079,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Sep_L.
@@ -1021,8 +1088,8 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
     - (* wand R *)
       apply BI_Wand_R.
-      assert ((fill C (frml ϕ;, frml ψ),, frml ϕ0) =
-                   fill (C ++ [CtxCommaL (frml ϕ0)]) (frml ϕ;, frml ψ))%B as ->.
+      assert ((fill Π (frml ϕ;, frml ψ),, frml ϕ0) =
+                   fill (Π ++ [CtxCommaL (frml ϕ0)]) (frml ϕ;, frml ψ))%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     - (* wand L *)
@@ -1036,7 +1103,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Wand_L; eauto.
@@ -1049,7 +1116,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_False_L.
@@ -1060,7 +1127,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_True_L.
@@ -1085,17 +1152,38 @@ Module bunchHeight.
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
         by apply BI_Higher.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Conj_L.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
-      assert ((fill C (frml ϕ;, frml ψ);, frml ϕ0) =
-                   fill (C ++ [CtxSemicL (frml ϕ0)]) (frml ϕ;, frml ψ))%B as ->.
+      assert ((fill Π (frml ϕ;, frml ψ);, frml ϕ0) =
+                   fill (Π ++ [CtxSemicL (frml ϕ0)]) (frml ϕ;, frml ψ))%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     -       apply bunch_decomp_complete in Heq.
@@ -1108,7 +1196,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Impl_L; eauto.
@@ -1117,14 +1205,14 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-  Lemma top_l_inv' Δ C ϕ ψ χ n :
+  Lemma top_l_inv' Δ Π ϕ ψ χ n :
     (Δ ⊢ᴮ{n} χ) →
-    Δ = fill C (frml TOP) →
-    (fill C top ⊢ᴮ{n} χ).
+    Δ = fill Π (frml TOP) →
+    (fill Π top ⊢ᴮ{n} χ).
   Proof.
-    revert C Δ χ.
+    revert Π Δ χ.
     induction n using lt_wf_ind. rename H into IHproves.
-    intros C Δ χ PROOF Heq. symmetry in Heq. revert Heq.
+    intros Π Δ χ PROOF Heq. symmetry in Heq. revert Heq.
     inversion PROOF; simplify_eq/= => Heq.
     (* induction H => C' Heq; symmetry in Heq. *)
     - (* raising the pf height *)
@@ -1151,7 +1239,7 @@ Module bunchHeight.
           by apply bunch_decomp_correct, bunch_decomp_app.
         * rewrite !fill_app/=.
           by apply BI_Weaken.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Weaken.
@@ -1162,14 +1250,14 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2]; last first.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Contr.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H1 as [C0 [HC0 ->]].
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
@@ -1202,7 +1290,7 @@ Module bunchHeight.
       exfalso.
       apply bunch_decomp_complete in Heq.
       simplify_eq/=.
-      rename Δ0 into Δ. revert C Heq. clear.
+      rename Δ0 into Δ. revert Π Heq. clear.
       induction Δ as [ | | | Δ1 IH1 Δ2 IH2 | Δ1 IH1 Δ2 IH2] => Π /=;
          inversion 1; simplify_eq/=;
          solve [ by eapply IH1 | by eapply IH2 ].
@@ -1216,7 +1304,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Emp_L.
@@ -1240,7 +1328,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Sep_L.
@@ -1249,8 +1337,8 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
     - (* wand R *)
       apply BI_Wand_R.
-      assert ((fill C top,, frml ϕ0) =
-                   fill (C ++ [CtxCommaL (frml ϕ0)]) top)%B as ->.
+      assert ((fill Π top,, frml ϕ0) =
+                   fill (Π ++ [CtxCommaL (frml ϕ0)]) top)%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     - (* wand L *)
@@ -1264,7 +1352,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Wand_L; eauto.
@@ -1277,7 +1365,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_False_L.
@@ -1289,7 +1377,7 @@ Module bunchHeight.
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
         by eapply BI_Higher.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_True_L.
@@ -1313,17 +1401,38 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Conj_L.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
-      assert ((fill C top;, frml ϕ0) =
-                   fill (C ++ [CtxSemicL (frml ϕ0)]) top)%B as ->.
+      assert ((fill Π top;, frml ϕ0) =
+                   fill (Π ++ [CtxSemicL (frml ϕ0)]) top)%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     -       apply bunch_decomp_complete in Heq.
@@ -1336,7 +1445,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Impl_L; eauto.
@@ -1345,14 +1454,14 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-  Lemma emp_l_inv' Δ C ϕ ψ χ n :
+  Lemma emp_l_inv' Δ Π ϕ ψ χ n :
     (Δ ⊢ᴮ{n} χ) →
-    Δ = fill C (frml EMP) →
-    (fill C empty ⊢ᴮ{n} χ).
+    Δ = fill Π (frml EMP) →
+    (fill Π empty ⊢ᴮ{n} χ).
   Proof.
-    revert C Δ χ.
+    revert Π Δ χ.
     induction n using lt_wf_ind. rename H into IHproves.
-    intros C Δ χ PROOF Heq. symmetry in Heq. revert Heq.
+    intros Π Δ χ PROOF Heq. symmetry in Heq. revert Heq.
     inversion PROOF; simplify_eq/= => Heq.
     (* induction H => C' Heq; symmetry in Heq. *)
     - (* raising the pf height *)
@@ -1379,7 +1488,7 @@ Module bunchHeight.
           by apply bunch_decomp_correct, bunch_decomp_app.
         * rewrite !fill_app/=.
           by apply BI_Weaken.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Weaken.
@@ -1390,14 +1499,14 @@ Module bunchHeight.
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_ctx in Heq.
       destruct Heq as [H1 | H2]; last first.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Contr.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H1 as [C0 [HC0 ->]].
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
@@ -1430,7 +1539,7 @@ Module bunchHeight.
       exfalso.
       apply bunch_decomp_complete in Heq.
       simplify_eq/=.
-      rename Δ0 into Δ. revert C Heq. clear.
+      rename Δ0 into Δ. revert Π Heq. clear.
       induction Δ as [ | | | Δ1 IH1 Δ2 IH2 | Δ1 IH1 Δ2 IH2] => Π /=;
          inversion 1; simplify_eq/=;
          solve [ by eapply IH1 | by eapply IH2 ].
@@ -1445,7 +1554,7 @@ Module bunchHeight.
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
         by eapply BI_Higher.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Emp_L.
@@ -1469,7 +1578,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Sep_L.
@@ -1478,8 +1587,8 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
     - (* wand R *)
       apply BI_Wand_R.
-      assert ((fill C empty,, frml ϕ0) =
-                   fill (C ++ [CtxCommaL (frml ϕ0)]) empty)%B as ->.
+      assert ((fill Π empty,, frml ϕ0) =
+                   fill (Π ++ [CtxCommaL (frml ϕ0)]) empty)%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     - (* wand L *)
@@ -1493,7 +1602,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Wand_L; eauto.
@@ -1506,7 +1615,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_False_L.
@@ -1517,7 +1626,7 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_True_L.
@@ -1541,17 +1650,38 @@ Module bunchHeight.
       destruct Heq as [H1 | H2].
       + destruct H1 as [C1 [HC0 HC]].
         inversion HC0; simplify_eq/=.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Conj_L.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
-      assert ((fill C empty;, frml ϕ0) =
-                   fill (C ++ [CtxSemicL (frml ϕ0)]) empty)%B as ->.
+      assert ((fill Π empty;, frml ϕ0) =
+                   fill (Π ++ [CtxSemicL (frml ϕ0)]) empty)%B as ->.
       { rewrite fill_app//. }
       eapply IHproves; eauto. rewrite -Heq fill_app /= //.
     -       apply bunch_decomp_complete in Heq.
@@ -1564,7 +1694,7 @@ Module bunchHeight.
           eapply IHproves; eauto; first lia.
           by apply bunch_decomp_correct.
         * exfalso. inversion H5.
-      + rename C0 into C'.
+      + rename Π0 into C'.
         destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
         rewrite -HC1.
         apply BI_Impl_L; eauto.
@@ -1594,17 +1724,17 @@ Proof.
   eapply bunchHeight.provesN_proves.
   by apply bunchHeight.wand_r_inv.
 Qed.
-Lemma Sep_L C ϕ ψ χ :
-  (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
-  (fill C (frml ϕ,, frml ψ) ⊢ᴮ χ).
+Lemma Sep_L Π ϕ ψ χ :
+  (fill Π (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
+  (fill Π (frml ϕ,, frml ψ) ⊢ᴮ χ).
 Proof.
   intros [n H]%bunchHeight.proves_provesN.
   eapply bunchHeight.provesN_proves.
   eapply bunchHeight.sep_l_inv'; eauto.
 Qed.
-Lemma Conj_L C ϕ ψ χ :
-  (fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
-  (fill C (frml ϕ;, frml ψ) ⊢ᴮ χ).
+Lemma Conj_L Π ϕ ψ χ :
+  (fill Π (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
+  (fill Π (frml ϕ;, frml ψ) ⊢ᴮ χ).
 Proof.
   intros [n H]%bunchHeight.proves_provesN.
   eapply bunchHeight.provesN_proves.
@@ -1619,47 +1749,47 @@ Proof.
   - intros Π [n H]%bunchHeight.proves_provesN.
     eapply bunchHeight.provesN_proves.
     eapply bunchHeight.box_l_inv'; eauto.
-  - intros C H1.
-    replace (fill C (BOX <·> Δ1,, (BOX <·> Δ2)))%B
-      with (fill (CtxCommaR (BOX <·> Δ1)::C) (BOX <·> Δ2)) by reflexivity.
+  - intros Π H1.
+    replace (fill Π (BOX <·> Δ1,, (BOX <·> Δ2)))%B
+      with (fill (CtxCommaR (BOX <·> Δ1)::Π) (BOX <·> Δ2)) by reflexivity.
     apply IHΔ2. simpl.
-    replace (fill C (BOX <·> Δ1,, BOX <·> (BOX <·> Δ2)))%B
-      with (fill (CtxCommaL (BOX <·> (BOX <·> Δ2))::C) (BOX <·> Δ1)) by reflexivity.
+    replace (fill Π (BOX <·> Δ1,, BOX <·> (BOX <·> Δ2)))%B
+      with (fill (CtxCommaL (BOX <·> (BOX <·> Δ2))::Π) (BOX <·> Δ1)) by reflexivity.
     apply IHΔ1. simpl. done.
-  - intros C H1.
-    replace (fill C (BOX <·> Δ1;, (BOX <·> Δ2)))%B
-      with (fill (CtxSemicR (BOX <·> Δ1)::C) (BOX <·> Δ2)) by reflexivity.
+  - intros Π H1.
+    replace (fill Π (BOX <·> Δ1;, (BOX <·> Δ2)))%B
+      with (fill (CtxSemicR (BOX <·> Δ1)::Π) (BOX <·> Δ2)) by reflexivity.
     apply IHΔ2. simpl.
-    replace (fill C (BOX <·> Δ1;, BOX <·> (BOX <·> Δ2)))%B
-      with (fill (CtxSemicL (BOX <·> (BOX <·> Δ2))::C) (BOX <·> Δ1)) by reflexivity.
+    replace (fill Π (BOX <·> Δ1;, BOX <·> (BOX <·> Δ2)))%B
+      with (fill (CtxSemicL (BOX <·> (BOX <·> Δ2))::Π) (BOX <·> Δ1)) by reflexivity.
     apply IHΔ1. simpl. done.
 Qed.
 
-Lemma Collapse_L C Δ ϕ :
-  (fill C (frml (collapse Δ)) ⊢ᴮ ϕ) →
-  (fill C Δ ⊢ᴮ ϕ).
+Lemma Collapse_L Π Δ ϕ :
+  (fill Π (frml (collapse Δ)) ⊢ᴮ ϕ) →
+  (fill Π Δ ⊢ᴮ ϕ).
 Proof.
-  revert C. induction Δ; simpl; first done.
-  - intros C [n H]%bunchHeight.proves_provesN.
+  revert Π. induction Δ; simpl; first done.
+  - intros Π [n H]%bunchHeight.proves_provesN.
     eapply bunchHeight.provesN_proves.
     eapply bunchHeight.top_l_inv'; eauto.
-  - intros C [n H]%bunchHeight.proves_provesN.
+  - intros Π [n H]%bunchHeight.proves_provesN.
     eapply bunchHeight.provesN_proves.
     eapply bunchHeight.emp_l_inv'; eauto.
-  - intros C H1.
-    replace (fill C (Δ1,, Δ2))%B
-      with (fill (CtxCommaR Δ1::C) Δ2) by reflexivity.
+  - intros Π H1.
+    replace (fill Π (Δ1,, Δ2))%B
+      with (fill (CtxCommaR Δ1::Π) Δ2) by reflexivity.
     apply IHΔ2. simpl.
-    replace (fill C (Δ1,, frml (collapse Δ2)))%B
-      with (fill (CtxCommaL (frml (collapse Δ2))::C) Δ1) by reflexivity.
+    replace (fill Π (Δ1,, frml (collapse Δ2)))%B
+      with (fill (CtxCommaL (frml (collapse Δ2))::Π) Δ1) by reflexivity.
     apply IHΔ1. simpl.
     by apply Sep_L.
-  - intros C H1.
-    replace (fill C (Δ1;, Δ2))%B
-      with (fill (CtxSemicR Δ1::C) Δ2) by reflexivity.
+  - intros Π H1.
+    replace (fill Π (Δ1;, Δ2))%B
+      with (fill (CtxSemicR Δ1::Π) Δ2) by reflexivity.
     apply IHΔ2. simpl.
-    replace (fill C (Δ1;, frml (collapse Δ2)))%B
-      with (fill (CtxSemicL (frml (collapse Δ2))::C) Δ1) by reflexivity.
+    replace (fill Π (Δ1;, frml (collapse Δ2)))%B
+      with (fill (CtxSemicL (frml (collapse Δ2))::Π) Δ1) by reflexivity.
     apply IHΔ1. simpl.
     by apply Conj_L.
 Qed.
