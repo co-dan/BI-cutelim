@@ -30,12 +30,18 @@ Module PB.
     {| PBPred := (λ Δ, X Δ ∧ Y Δ) |}.
   Next Obligation. solve_proper. Qed.
 
+  Global Instance PB_and_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_and.
+  Proof. compute; naive_solver. Qed.
+
   Program Definition PB_impl (X Y : PB) : PB :=
     {| PBPred := (λ Δ, X Δ → Y Δ) |}.
   Next Obligation.
     intros X Y Δ Δ' HΔ. rewrite HΔ.
     eauto.
   Qed.
+
+  Global Instance PB_impl_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_impl.
+  Proof. compute; naive_solver. Qed.
 
   Program Definition PB_emp : PB :=
     {| PBPred := (λ Δ, Δ ≡ empty) |}.
@@ -45,17 +51,26 @@ Module PB.
     {| PBPred := (λ Δ, ∃ Δ1 Δ2, X Δ1 ∧ Y Δ2 ∧ (Δ ≡ (Δ1 ,, Δ2)%B)) |}.
   Next Obligation. solve_proper. Qed.
 
+  Global Instance PB_sep_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_sep.
+  Proof. compute; naive_solver. Qed.
+
   Program Definition PB_wand (X Y : PB) : PB :=
     @MkPB (λ Δ, ∀ Δ1, X Δ1 → Y (Δ ,, Δ1)%B) _.
   Next Obligation.
     intros X Y Δ Δ' HΔ. by setoid_rewrite HΔ.
   Qed.
 
+  Global Instance PB_wand_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_wand.
+  Proof. compute; naive_solver. Qed.
+
   Definition PB_pure (ϕ : Prop) : PB := MkPB (λ _, ϕ).
 
   Program Definition PB_or (X Y : PB) : PB :=
     {| PBPred := (λ Δ, X Δ ∨ Y Δ)%B |}.
   Next Obligation. solve_proper. Qed.
+
+  Global Instance PB_or_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_or.
+  Proof. compute; naive_solver. Qed.
 
   Program Definition PB_forall (A : Type) (DD : A → PB) : PB :=
     @MkPB (λ Δ, ∀ (a : A), DD a Δ) _.
@@ -243,6 +258,11 @@ Module Cl.
     by rewrite HXY.
   Qed.
 
+  Global Instance Is_closed_cl (X : PB) : Is_closed (cl X).
+  Proof.
+    rewrite /Is_closed. by rewrite cl_idemp.
+  Qed.
+
   Lemma Is_closed_inc (X : PB) :
     ((cl X : PB_alg) ⊢ X) → Is_closed X.
   Proof.
@@ -357,9 +377,6 @@ Module Cl.
 
   Program Definition cl' (X : PB) : C :=
     {| CPred := cl X |}.
-  Next Obligation.
-    intros X. unfold Is_closed. by rewrite cl_idemp.
-  Qed.
 
   Global Instance C_equiv : Equiv C := PB_equiv.
   Global Instance C_equiv_equivalence : Equivalence (≡@{C}).
@@ -446,27 +463,32 @@ Module Cl.
   Program Definition C_exists (A : Type) (CC : A → C) : C :=
     cl' (PB_exists A CC).
 
-  Program Definition C_wand (X Y : C) : C :=
-    {| CPred := PB_wand X Y |}.
-  Next Obligation.
-    intros X Y.
-    cut (PB_wand X Y ≡
-            @C_forall ({ Δ | X Δ } * { ϕ : formula | Y ⊢@{PB_alg} Fint ϕ })
+  Global Instance PB_exp_Is_closed (X : PB) (Y : PB) :
+    Is_closed Y →
+    Is_closed (PB_wand X Y).
+  Proof.
+    rewrite {1}/Is_closed. intros HYc. rewrite HYc.
+    cut (PB_wand X (cl Y) ≡
+            @C_forall ({ Δ | X Δ } * { ϕ : formula | (cl Y) ⊢@{PB_alg} Fint ϕ })
             (λ '(Δ, ϕ), Fint' (WAND (collapse (`Δ)) (`ϕ)))).
     { intros ->. by apply CPred_closed. }
     intro Δ. simpl. split.
     - intros HXY. intros ([Δ' HX], [ϕ Hϕ]).
       simpl. apply BI_Wand_R.
       apply Hϕ.
-      apply (C_collapse _ [CtxCommaR Δ]).
+      apply (C_collapse (cl' Y) [CtxCommaR Δ]).
       simpl. by apply HXY.
     - intros H Δ' HX.
-      destruct Y as [Y Yc]. simpl.
-      rewrite Yc. intros ψ Hψ.
+      (* destruct Y as [Y Yc]. simpl. *)
+      (* rewrite Yc. *)
+      intros ψ. rewrite HYc. intros Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
       apply wand_r_inv in H.
       by apply (collapse_l_inv [CtxCommaR Δ]).
   Qed.
+
+  Program Definition C_wand (X Y : C) : C :=
+    {| CPred := PB_wand X Y |}.
 
   Local Infix "⊢" := C_entails.
   Local Notation "'emp'" := C_emp.
@@ -476,21 +498,19 @@ Module Cl.
   Local Infix "∧" := C_and.
   Local Infix "∨" := C_or.
 
-  Lemma cl_adj (X : PB) (Y : C) :
-    (X ⊢@{PB_alg} (Y : PB_alg)) → cl' X ⊢@{PB_alg} Y.
+  Lemma cl_adj (X : PB) (Y : PB) `{!Is_closed Y} :
+    (X ⊢@{PB_alg} Y) → cl' X ⊢@{PB_alg} Y.
   Proof.
-    intros H1 Δ.
-    destruct Y as [Y Ycl].
-    rewrite Ycl. eapply cl_mono.
-    eapply H1.
+    rewrite (@closed_eq_cl Y).
+    rewrite -{2}(cl_idemp Y).
+    apply cl_mono.
   Qed.
   Lemma cl'_adj (X : PB) (Y : C) :
     (X ⊢@{PB_alg} (Y : PB_alg)) → cl' X ⊢ Y.
   Proof.
-    intros H1 Δ.
-    destruct Y as [Y Ycl].
-    rewrite Ycl. eapply cl_mono.
-    eapply H1.
+    intros H1. apply cl_adj.
+    { apply _. }
+    apply H1.
   Qed.
 
   Lemma impl_intro_r (P Q R : C) : (P ∧ Q ⊢ R) → P ⊢ Q → R.
@@ -610,8 +630,6 @@ Module Cl.
     rewrite (assoc _ D1). repeat split; eauto.
     apply cl_unit. do 2 eexists; repeat split; eauto.
   Qed.
-
-  Axiom LEM : ∀ (φ : Prop), φ ∨ ¬ φ.
 
   Lemma C_bi_mixin : BiMixin (PROP:=ClO)
                               C_entails C_emp C_pure C_and C_or
@@ -744,6 +762,26 @@ Definition C_atom (a : atom) := Fint' (ATOM a).
 
 Definition inner_interp : formula → C
   := formula_interp C_alg C_atom.
+
+Lemma cl_sep (X Y : PB) :
+  cl (PB_sep X Y) ≡ C_sep (cl' X) (cl' Y).
+Proof.
+  rewrite /C_sep.
+  split.
+  { apply cl_mono. f_equiv; apply cl_unit. }
+  revert Δ.
+  cut (cl' (PB_sep (cl' X) (cl' Y)) ⊢ cl' (PB_sep X Y)).
+  { intros H1 Δ. apply (H1 Δ). }
+  eapply cl'_adj.
+  eapply bi.wand_elim_l'.
+  apply (cl'_adj X (cl' Y -∗ cl' (PB_sep X Y))).
+  apply bi.wand_intro_l.
+  apply bi.wand_elim_l'.
+  simpl.
+  apply cl_adj.
+  { apply _. }
+  apply bi.wand_intro_l. apply cl_unit.
+Qed.
 
 Lemma pas_de_deux (A : formula) :
   ((inner_interp A) (frml A)) ∧ (inner_interp A ⊢@{C_alg} Fint' A).
