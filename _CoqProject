@@ -17,3 +17,5 @@ theories/seqcalc_s4.v
 theories/seqcalc_height_s4.v
 theories/interp_s4.v
 theories/cutelim_s4.v
+
+theories/ext/terms.v

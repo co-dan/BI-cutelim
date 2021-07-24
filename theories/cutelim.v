@@ -401,17 +401,22 @@ Module Cl.
       naive_solver.
   Qed.
 
-  Program Definition C_and (X Y : C) : C :=
-    {| CPred := ((X : PB_alg) ∧ Y)%I |}.
-  Next Obligation.
-    intros [X HX] [Y HY]. apply Is_closed_inc.
-    rewrite /bi_and /=.
+  Global Instance PB_and_Is_closed X Y :
+    Is_closed X →
+    Is_closed Y →
+    Is_closed (PB_and X Y).
+  Proof.
+    intros HX HY.
+    apply Is_closed_inc.
     intros Δ HΔ. split.
     + rewrite HX. intros ψ H'. eapply HΔ.
       rewrite -H'. intros ?. simpl. naive_solver.
     + rewrite HY. intros ψ H'. eapply HΔ.
       rewrite -H'. intros ?. simpl. naive_solver.
   Qed.
+
+  Program Definition C_and (X Y : C) : C :=
+    {| CPred := ((X : PB_alg) ∧ Y)%I |}.
 
   Program Definition C_forall (A : Type) (CC : A → C) : C :=
     {| CPred := PB_forall A CC |}.
@@ -432,38 +437,10 @@ Module Cl.
     intros X Y D1 D2 H1. by setoid_rewrite H1.
   Qed.
 
-  Program Definition C_impl (X : PB) (Y : C) : C :=
-    {| CPred := PB_impl' X Y |}.
-  Next Obligation.
-    intros X Y.
-    cut (PB_impl' X Y ≡
-            @C_forall ({ Δ | X Δ } * { ϕ : formula | Y ⊢@{PB_alg} Fint ϕ })
-            (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)))).
-    { intros ->. by apply CPred_closed. }
-    intro Δ. simpl. split.
-    - intros HXY. intros ([Δ' HX], [ϕ Hϕ]).
-      simpl. apply BI_Impl_R.
-      apply Hϕ.
-      apply (C_collapse _ [CtxSemicR Δ]).
-      simpl. by apply HXY.
-    - intros H Δ' HX.
-      destruct Y as [Y Yc]. simpl.
-      rewrite Yc. intros ψ Hψ.
-      specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
-      apply impl_r_inv in H.
-      by apply (collapse_l_inv [CtxSemicR Δ]).
-  Qed.
+  Global Instance PB_impl'_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_impl'.
+  Proof. compute; naive_solver. Qed.
 
-  Definition C_emp : C := cl' PB_emp.
-
-  Program Definition C_sep (X Y : C) : C := cl' (PB_sep X Y).
-
-  Program Definition C_or (X Y : C) : C := cl' (PB_or X Y).
-
-  Program Definition C_exists (A : Type) (CC : A → C) : C :=
-    cl' (PB_exists A CC).
-
-  Global Instance PB_exp_Is_closed (X : PB) (Y : PB) :
+  Global Instance PB_wand_Is_closed (X : PB) (Y : PB) :
     Is_closed Y →
     Is_closed (PB_wand X Y).
   Proof.
@@ -479,13 +456,46 @@ Module Cl.
       apply (C_collapse (cl' Y) [CtxCommaR Δ]).
       simpl. by apply HXY.
     - intros H Δ' HX.
-      (* destruct Y as [Y Yc]. simpl. *)
-      (* rewrite Yc. *)
       intros ψ. rewrite HYc. intros Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
       apply wand_r_inv in H.
       by apply (collapse_l_inv [CtxCommaR Δ]).
   Qed.
+
+  Global Instance PB_impl_Is_closed (X : PB) (Y : PB) :
+    Is_closed Y →
+    Is_closed (PB_impl' X Y).
+  Proof.
+    rewrite {1}/Is_closed. intros HYc. rewrite HYc.
+    cut (PB_impl' X (cl Y) ≡
+            @C_forall ({ Δ | X Δ } * { ϕ : formula | (cl Y) ⊢@{PB_alg} Fint ϕ })
+            (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)))).
+    { intros ->. by apply CPred_closed. }
+    intro Δ. simpl. split.
+    - intros HXY. intros ([Δ' HX], [ϕ Hϕ]).
+      simpl. apply BI_Impl_R.
+      apply Hϕ.
+      apply (C_collapse (cl' Y) [CtxSemicR Δ]).
+      simpl. by apply HXY.
+    - intros H Δ' HX.
+      intros ψ. rewrite HYc. intros Hψ.
+      specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
+      apply impl_r_inv in H.
+      by apply (collapse_l_inv [CtxSemicR Δ]).
+  Qed.
+
+
+  Program Definition C_impl (X : PB) (Y : C) : C :=
+    {| CPred := PB_impl' X Y |}.
+
+  Definition C_emp : C := cl' PB_emp.
+
+  Program Definition C_sep (X Y : C) : C := cl' (PB_sep X Y).
+
+  Program Definition C_or (X Y : C) : C := cl' (PB_or X Y).
+
+  Program Definition C_exists (A : Type) (CC : A → C) : C :=
+    cl' (PB_exists A CC).
 
   Program Definition C_wand (X Y : C) : C :=
     {| CPred := PB_wand X Y |}.
@@ -758,13 +768,9 @@ Canonical Structure C_alg : bi :=
   {| bi_ofe_mixin := (ofe_mixin ClO); bi_bi_mixin := C_bi_mixin;
      bi_bi_later_mixin := C_bi_later_mixin |}.
 
-Definition C_atom (a : atom) := Fint' (ATOM a).
-
-Definition inner_interp : formula → C
-  := formula_interp C_alg C_atom.
-
+(** We now show that [cl] is an embedding from [C] to [PB] *)
 Lemma cl_sep (X Y : PB) :
-  cl (PB_sep X Y) ≡ C_sep (cl' X) (cl' Y).
+  cl' (PB_sep X Y) ≡ C_sep (cl' X) (cl' Y).
 Proof.
   rewrite /C_sep.
   split.
@@ -782,6 +788,27 @@ Proof.
   { apply _. }
   apply bi.wand_intro_l. apply cl_unit.
 Qed.
+
+(* Lemma cl_and (X Y : PB) : *)
+(*   cl (PB_and X Y) ≡ C_and (cl' X) (cl' Y). *)
+(* Proof. *)
+(*   rewrite /C_and. simpl. *)
+(*   split. *)
+(*   { apply cl_adj; first apply _. *)
+(*     f_equiv; apply cl_unit. } *)
+(*   revert Δ. *)
+(*   cut ((C_and (cl' X) (cl' Y)) ⊢ cl' (PB_and X Y)). *)
+(*   { intros H1 Δ. apply (H1 Δ). } *)
+(*   eapply bi.impl_elim_l'. *)
+(*   apply (cl'_adj X (C_impl (cl' Y) (cl' (PB_and X Y)))). *)
+(*   simpl. *)
+(* Admitted. *)
+
+Definition C_atom (a : atom) := Fint' (ATOM a).
+
+Definition inner_interp : formula → C
+  := formula_interp C_alg C_atom.
+
 
 Lemma pas_de_deux (A : formula) :
   ((inner_interp A) (frml A)) ∧ (inner_interp A ⊢@{C_alg} Fint' A).
