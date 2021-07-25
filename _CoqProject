@@ -8,6 +8,9 @@ iris-mod/bi/derived_laws.v
 # iris-mod/bi/derived_laws_later.v
 iris-mod/bi/bi.v
 
+theories/syntax.v
+theories/terms.v
+theories/bunch_decomp.v
 theories/seqcalc.v
 theories/interp.v
 theories/seqcalc_height.v
@@ -17,5 +20,3 @@ theories/seqcalc_s4.v
 theories/seqcalc_height_s4.v
 theories/interp_s4.v
 theories/cutelim_s4.v
-
-theories/ext/terms.v

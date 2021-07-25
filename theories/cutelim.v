@@ -1,8 +1,12 @@
 (* Semantic proof of cut elimination.. *)
 From Coq Require Import ssreflect.
-From stdpp Require Import prelude.
+From stdpp Require Import prelude gmap.
 From iris_mod.bi Require Import bi.
-From bunched Require Import seqcalc seqcalc_height interp.
+From Equations Require Import Equations.
+From bunched Require Import seqcalc seqcalc_height interp terms syntax.
+
+(* XXX: unset the results of loading Equations *)
+Global Obligation Tactic := idtac.
 
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
@@ -210,6 +214,19 @@ Module Cl.
     intros X Δ1 Δ2 HD. by setoid_rewrite HD.
   Qed.
 
+  Class Is_closed (X : PB) := closed_eq_cl : X ≡ cl X.
+
+  Record C :=
+    { CPred :> PB ; CPred_closed : Is_closed CPred }.
+
+  Global Existing Instance CPred_closed.
+
+  Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) X.
+  Proof.
+    intros D1 D2 HD.
+    by apply PBPred_proper.
+  Qed.
+
   Lemma cl_unit X : X ⊢ cl (X : PB_alg).
   Proof.
     intros Δ Hx. simpl. intros ϕ Hϕ.
@@ -231,26 +248,11 @@ Module Cl.
     intros H2. by eapply H2.
   Qed.
 
-  Lemma cl_alt_eq (X : PB) :
-    (cl X : PB) ≡
-      (∀ Z : { ϕ : formula | X ⊢@{PB_alg} Fint ϕ },
-          Fint (proj1_sig Z) : PB_alg)%I.
-  Proof.
-    split.
-    - simpl. intros H1.
-      rewrite /bi_forall/PB_forall /=.
-      intros [ϕ Hϕ]. simpl. by eapply H1.
-    - simpl. intros H1 ϕ HX.
-      apply (H1 (ϕ ↾ HX)).
-  Qed.
-
   Global Instance cl_proper : Proper ((≡) ==> (≡)) cl.
   Proof.
     intros X Y HXY.
     split; eapply cl_mono; by rewrite HXY.
   Qed.
-
-  Class Is_closed (X : PB) := closed_eq_cl : X ≡ cl X.
 
   Global Instance Is_closed_proper : Proper ((≡) ==> (↔)) Is_closed.
   Proof.
@@ -272,29 +274,25 @@ Module Cl.
     - eapply H1.
   Qed.
 
-  Record C :=
-    { CPred :> PB ; CPred_closed : Is_closed CPred }.
-  Global Existing Instance CPred_closed.
-  Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) X.
-  Proof.
-    intros D1 D2 HD.
-    by apply PBPred_proper.
-  Qed.
-
-  Lemma C_intro (X : C) Δ :
-    (∀ ϕ, (X ⊢@{PB_alg} Fint ϕ) → Δ ⊢ᴮ ϕ) →
-    X Δ.
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros H1. rewrite Xcl. done.
-  Qed.
-
   Program Definition Fint' ϕ : C :=
     {| CPred := Fint ϕ |}.
   Next Obligation.
     intros ϕ. apply Is_closed_inc.
     intros Δ Hcl. simpl. eapply Hcl.
     eauto.
+  Qed.
+
+  Lemma cl_alt_eq (X : PB) :
+    (cl X : PB) ≡
+      (∀ Z : { ϕ : formula | X ⊢@{PB_alg} Fint ϕ },
+          Fint (proj1_sig Z) : PB_alg)%I.
+  Proof.
+    split.
+    - simpl. intros H1.
+      rewrite /bi_forall/PB_forall /=.
+      intros [ϕ Hϕ]. simpl. by eapply H1.
+    - simpl. intros H1 ϕ HX.
+      apply (H1 (ϕ ↾ HX)).
   Qed.
 
   Lemma cl_alt_eq_2 (X : PB) :
@@ -323,6 +321,21 @@ Module Cl.
     - intros H1. rewrite /bi_forall /bi_impl /=.
       intros [Y HXY]. simpl. apply H1.
       apply HXY.
+  Qed.
+
+  Lemma C_inhabited (X : C) : X (frml BOT).
+  Proof.
+    destruct X as [X Xcl]. simpl.
+    rewrite Xcl. intros ϕ Hϕ.
+    eapply (BI_False_L []).
+  Qed.
+
+  Lemma C_intro (X : C) Δ :
+    (∀ ϕ, (X ⊢@{PB_alg} Fint ϕ) → Δ ⊢ᴮ ϕ) →
+    X Δ.
+  Proof.
+    destruct X as [X Xcl]. simpl.
+    intros H1. rewrite Xcl. done.
   Qed.
 
   Lemma C_weaken (X : C) Δ Δ' :
@@ -385,7 +398,7 @@ Module Cl.
     split; repeat intro; naive_solver.
   Qed.
 
-  Definition C_entails (X Y : C) : Prop := PB.PB_entails X Y.
+  Definition C_entails (X Y : C) : Prop := PB_entails X Y.
 
   Global Instance C_entail_proper : Proper ((≡) ==> (≡) ==> (↔)) C_entails.
   Proof.
@@ -881,14 +894,16 @@ Qed.
 End Cl.
 
 Import PB Cl.
+Global Instance ElemOf_C : ElemOf bunch C := λ a X, X a.
+Global Instance ElemOf_PB : ElemOf bunch PB := λ a X, X a.
 
 Theorem cut Γ Δ ϕ ψ :
   (Δ ⊢ᴮ ψ) →
   (fill Γ (frml ψ) ⊢ᴮ ϕ) →
   fill Γ Δ ⊢ᴮ ϕ.
 Proof.
-  intros H1%(seq_interp_sound C_alg C_atom).
-  intros H2%(seq_interp_sound C_alg C_atom).
+  intros H1%(seq_interp_sound (PROP:=C_alg) C_atom).
+  intros H2%(seq_interp_sound (PROP:=C_alg) C_atom).
   simpl in H1, H2.
   cut (seq_interp C_alg C_atom (fill Γ Δ) ϕ).
   { simpl. intros H3.
@@ -904,3 +919,59 @@ Qed.
 
 (* Print Assumptions cut. *)
 (*  ==> Closed under the global context *)
+
+
+Lemma bterm_C_refl `{!EqDecision V, !Countable V}
+      (T : bterm V) (Xs : V → C_alg) :
+  ∀ (Δs : V → bunch),
+    (forall (i : V), (Δs i) ∈ (Xs i)) ->
+    bterm_ctx_act T Δs ∈ bterm_alg_act T Xs.
+Proof.
+  intros Δs HΔ.
+  induction T; simpl.
+  - apply HΔ.
+  - apply cl_unit. do 2 eexists.
+    repeat split; last reflexivity.
+    + apply IHT1.    + apply IHT2.
+Qed.
+
+Lemma blinterm_C_desc `{!EqDecision V, !Countable V}
+      (T : bterm V) (TL : linear_bterm T)
+      (Xs : V → C_alg) (Δ : bunch) :
+  bterm_alg_act (PROP:=PB_alg) T Xs Δ →
+  ∃ (Δs : V → bunch),
+    (forall (i : V), (Δs i) ∈ (Xs i)) ∧
+    Δ ≡ bterm_ctx_act T Δs.
+Proof.
+  revert Δ Xs. induction T=>Δ Xs /=.
+  - intros HXs.
+    exists (λ (i : V),
+                if decide (i = x) then Δ
+                else frml BOT).
+    rewrite decide_True//. split; auto.
+    intros i. case_decide; simplify_eq/=; auto.
+    apply C_inhabited.
+  - intros (Δ1 & Δ2 & H1 & H2 & Heq).
+    simp linear_bterm in TL.
+    destruct TL as (Hfv & HL1 & HL2).
+    destruct (IHT1 HL1 _ _ H1) as (Δs1 & HΔs1 & HDs1eq).
+    destruct (IHT2 HL2 _ _ H2) as (Δs2 & HΔs2 & HDs2eq).
+    pose (Δs := λ (x : V),
+                if decide (x ∈ term_fv T1) then Δs1 x
+                else Δs2 x).
+    exists Δs. split.
+    + intros i. unfold Δs.
+      case_decide; auto.
+    + assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
+      { apply bterm_ctx_act_fv.
+        unfold Δs. intros i Hi.
+        case_decide; auto. exfalso. auto. }
+      assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
+      { apply bterm_ctx_act_fv.
+        unfold Δs. intros i Hi.
+        case_decide; auto. exfalso.
+        revert Hfv Hi. set_unfold.
+        naive_solver. }
+      rewrite Heq. by f_equiv.
+Qed.
+

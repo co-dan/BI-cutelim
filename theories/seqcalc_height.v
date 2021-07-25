@@ -6,7 +6,7 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
 From iris_mod.bi Require Import bi.
-From bunched Require Import seqcalc.
+From bunched Require Import seqcalc bunch_decomp.
 
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).

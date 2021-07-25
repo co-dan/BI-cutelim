@@ -1,9 +1,10 @@
 From Coq Require Import ssreflect.
-From stdpp Require Import prelude.
 From iris_mod.bi Require Import bi.
-From bunched Require Import seqcalc.
+From stdpp Require Import prelude.
+From bunched Require Import syntax.
 
-(** * Interpretation of the sequent calculus in an arbitrary BI. *)
+
+(** * Interpretation of BI intro the associated algebras *)
 
 Section interp.
 
@@ -49,19 +50,19 @@ Section interp.
   Definition seq_interp Δ ϕ : Prop :=
     (bunch_interp Δ ⊢ formula_interp ϕ).
 
-  Program Definition bunch_ctx_item_interp (C : bunch_ctx_item) : PROP -n> PROP :=
-    λne P, match C with
+  Program Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP -n> PROP :=
+    λne P, match F with
            | CtxCommaL Δ => P ∗ bunch_interp Δ
            | CtxCommaR Δ => bunch_interp Δ ∗ P
            | CtxSemicL Δ => P ∧ bunch_interp Δ
            | CtxSemicR Δ => bunch_interp Δ ∧ P
            end%I.
-  Next Obligation. intros C. destruct C; solve_proper. Qed.
+  Next Obligation. destruct F; solve_proper. Qed.
 
   Program Definition bunch_ctx_interp Π : PROP -n> PROP :=
     λne P, foldl (flip bunch_ctx_item_interp) P Π.
   Next Obligation.
-    intros Π. induction Π.
+    induction Π.
     - apply _.
     - intros n P P' HP.
       cbn[foldl].
@@ -117,33 +118,6 @@ Section interp.
   Proof.
     intros Δ1 Δ2 HΔ ϕ ? <-. rewrite /seq_interp /=.
     split; rewrite -HΔ; eauto.
-  Qed.
-
-  Theorem seq_interp_sound Δ ϕ : (Δ ⊢ᴮ ϕ) → seq_interp Δ ϕ.
-  Proof.
-    induction 1; unfold seq_interp; simpl; eauto; try rewrite -IHproves.
-    all: try by apply bunch_interp_fill_mono.
-    - by rewrite -H.
-    - apply bunch_interp_fill_mono; simpl.
-      by rewrite bi.and_elim_l.
-    - apply bunch_interp_fill_mono; simpl.
-      apply bi.and_intro; eauto.
-    - by rewrite IHproves1 IHproves2.
-    - by apply bi.wand_intro_r.
-    - rewrite -IHproves2.
-      apply bunch_interp_fill_mono; simpl.
-      rewrite IHproves1. apply bi.wand_elim_r.
-    - induction C as [|C Π IH]; simpl.
-      { apply bi.False_elim. }
-      rewrite -IH.
-      destruct C; simpl; apply bunch_interp_fill_mono; simpl.
-      all: by rewrite ?left_absorb ?right_absorb.
-    - apply bi.True_intro.
-    - by rewrite IHproves1 IHproves2.
-    - by apply bi.impl_intro_r.
-    - rewrite -IHproves2.
-      apply bunch_interp_fill_mono; simpl.
-      rewrite IHproves1. apply bi.impl_elim_r.
   Qed.
 
 End interp.
