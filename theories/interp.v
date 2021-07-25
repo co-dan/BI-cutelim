@@ -70,6 +70,13 @@ Section interp.
       cbn[flip]. by eapply bunch_ctx_item_interp.
   Qed.
 
+  Lemma bunch_ctx_interp_cons F Π A :
+    bunch_ctx_interp (F::Π) A = bunch_ctx_interp Π (bunch_ctx_item_interp F A).
+  Proof. reflexivity. Qed.
+
+  Global Instance bunch_ctx_interp_proper Π : Proper ((≡) ==> (≡)) (bunch_ctx_interp Π).
+  Proof. apply _. Qed.
+
   Lemma bunch_ctx_interp_decomp Π Δ :
     bunch_interp (fill Π Δ) ≡ bunch_ctx_interp Π (bunch_interp Δ).
   Proof.
@@ -112,6 +119,14 @@ Section interp.
     - simpl. by rewrite left_id.
     - simpl. by rewrite comm.
     - simpl. by rewrite assoc.
+  Qed.
+
+  Global Instance bunch_ctx_interp_mono Π : Proper ((⊢) ==> (⊢)) (bunch_ctx_interp Π).
+  Proof.
+    induction Π as [|F Π]=>P1 P2 HP; first by simpl; auto.
+    rewrite !bunch_ctx_interp_cons.
+    apply IHΠ.
+    destruct F; simpl; f_equiv; eauto.
   Qed.
 
   Global Instance seq_interp_proper : Proper ((≡) ==> (=) ==> (≡)) seq_interp.

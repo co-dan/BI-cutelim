@@ -3,7 +3,7 @@ From Equations Require Import Equations.
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
 From iris_mod.bi Require Import bi.
-From bunched Require Import syntax.
+From bunched Require Import syntax interp.
 
 (** * Bunched terms *)
 Inductive bterm (var : Type) : Type :=
@@ -75,3 +75,49 @@ Proof.
   rewrite -IHT1 -IHT2. by rewrite smor_sep.
 Qed.
 
+Lemma bterm_ctx_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
+      (T : bterm V) (Δs : V → bunch) (s : atom → PROP) :
+  bunch_interp _ s (bterm_ctx_act T Δs) =
+  bterm_alg_act T (bunch_interp _ s ∘ Δs).
+Proof.
+  induction T; simpl.
+  - reflexivity.
+  - by rewrite IHT1 IHT2.
+Qed.
+
+Lemma blinterm_ctx_act_insert `{!EqDecision V,!Countable V} (T : bterm V) Δs i :
+  linear_bterm T →
+  i ∈ term_fv T →
+  ∃ (Π : bunch_ctx), ∀ Γ , fill Π Γ = bterm_ctx_act T (<[i:=Γ]>Δs).
+Proof.
+  revert i. induction T=>i; simp linear_bterm term_fv ; simpl ; intros Hlin Hi.
+  - exists []. intros Γ. assert ( i = x) as -> by set_solver.
+    by rewrite functions.fn_lookup_insert.
+  - destruct Hlin as (Hdisj & Hlin1 & Hlin2).
+    set_unfold.
+    destruct Hi as [Hi1 | Hi2].
+    + destruct (IHT1 i Hlin1 Hi1) as (Π₁ & HΠ1).
+      exists (Π₁++[CtxCommaL (bterm_ctx_act T2 Δs)]).
+      intros Γ. rewrite fill_app /=.
+      rewrite HΠ1. f_equiv.
+      assert (i ∉ term_fv T2).
+      { set_solver. }
+      apply bterm_ctx_act_fv.
+      intros j. destruct (decide (i = j)) as [->|?].
+      { naive_solver. }
+      rewrite functions.fn_lookup_insert_ne//.
+    + destruct (IHT2 i Hlin2 Hi2) as (Π₁ & HΠ1).
+      exists (Π₁++[CtxCommaR (bterm_ctx_act T1 Δs)]).
+      intros Γ. rewrite fill_app /=.
+      rewrite HΠ1. f_equiv.
+      assert (i ∉ term_fv T1).
+      { set_solver. }
+      apply bterm_ctx_act_fv.
+      intros j. destruct (decide (i = j)) as [->|?].
+      { naive_solver. }
+      rewrite functions.fn_lookup_insert_ne//.
+Qed.
+
+(* XXX: unset the results of loading Equations *)
+Global Obligation Tactic := idtac.
+(* IMPORTANT: make sure that Equations is loadeded *before* this module, otherwise this will be overwritten. *)

@@ -1,62 +1,83 @@
 From Coq Require Import ssreflect.
-From stdpp Require Import prelude.
+From stdpp Require Import prelude gmap fin_sets.
 From iris_mod.bi Require Import bi.
-From bunched Require Export syntax interp.
+From bunched Require Export syntax interp terms.
+
+Module Type SIMPLE_STRUCT_EXT.
+  Parameter rules : list (list (bterm nat) * bterm nat).
+  Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
+      (Ts, T) ∈ rules → linear_bterm T.
+End SIMPLE_STRUCT_EXT.
+
+(* When the set of rules is valid in the algebra *)
+Definition rule_valid (PROP : bi) (Ts : list (bterm nat)) (T : bterm nat) :=
+  ∀ (Xs : nat → PROP),
+    bterm_alg_act T Xs ⊢
+       ∃ Ti' : {Ti : bterm nat | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
 
 (** * Sequent calculus  *)
 Reserved Notation "P ⊢ᴮ Q" (at level 99, Q at level 200, right associativity).
+
+Module Seqcalc (R : SIMPLE_STRUCT_EXT).
+Import R.
+
 Inductive proves : bunch → formula → Prop :=
 (* structural *)
 | BI_Axiom (a : atom) : frml (ATOM a) ⊢ᴮ ATOM a
 | BI_Equiv Δ Δ' ϕ :
     (Δ ≡ Δ') → (Δ ⊢ᴮ ϕ) →
     Δ' ⊢ᴮ ϕ
-| BI_Weaken C Δ Δ' ϕ : (fill C Δ ⊢ᴮ ϕ) →
-                       fill C (Δ ;, Δ') ⊢ᴮ ϕ
-| BI_Contr C Δ ϕ : (fill C (Δ ;, Δ) ⊢ᴮ ϕ) →
-                   fill C Δ ⊢ᴮ ϕ
+| BI_Weaken Π Δ Δ' ϕ : (fill Π Δ ⊢ᴮ ϕ) →
+                       fill Π (Δ ;, Δ') ⊢ᴮ ϕ
+| BI_Contr Π Δ ϕ : (fill Π (Δ ;, Δ) ⊢ᴮ ϕ) →
+                   fill Π Δ ⊢ᴮ ϕ
+| BI_Simple_Ext Π (Δs : nat → bunch)
+  (Ts : list (bterm nat)) (T : bterm nat) ϕ :
+  (Ts, T) ∈ rules →
+  (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ ϕ) →
+  fill Π (bterm_ctx_act T Δs) ⊢ᴮ ϕ
 (* multiplicatives *)
 | BI_Emp_R :
     empty ⊢ᴮ EMP
-| BI_Emp_L C ϕ :
-    (fill C empty ⊢ᴮ ϕ) →
-    fill C (frml EMP) ⊢ᴮ ϕ
+| BI_Emp_L Π ϕ :
+    (fill Π empty ⊢ᴮ ϕ) →
+    fill Π (frml EMP) ⊢ᴮ ϕ
 | BI_Sep_R Δ Δ' ϕ ψ :
     (Δ ⊢ᴮ ϕ) →
     (Δ' ⊢ᴮ ψ) →
     Δ ,, Δ' ⊢ᴮ SEP ϕ ψ
-| BI_Sep_L C ϕ ψ χ :
-    (fill C (frml ϕ ,, frml ψ) ⊢ᴮ χ) →
-    fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ
+| BI_Sep_L Π ϕ ψ χ :
+    (fill Π (frml ϕ ,, frml ψ) ⊢ᴮ χ) →
+    fill Π (frml (SEP ϕ ψ)) ⊢ᴮ χ
 | BI_Wand_R Δ ϕ ψ :
     (Δ ,, frml ϕ ⊢ᴮ ψ) →
     Δ  ⊢ᴮ WAND ϕ ψ
-| BI_Wand_L C Δ ϕ ψ χ :
+| BI_Wand_L Π Δ ϕ ψ χ :
     (Δ ⊢ᴮ ϕ) →
-    (fill C (frml ψ) ⊢ᴮ χ) →
-    fill C (Δ ,, frml (WAND ϕ ψ)) ⊢ᴮ χ
+    (fill Π (frml ψ) ⊢ᴮ χ) →
+    fill Π (Δ ,, frml (WAND ϕ ψ)) ⊢ᴮ χ
 (* additives *)
-| BI_False_L C ϕ :
-    fill C (frml BOT) ⊢ᴮ ϕ
+| BI_False_L Π ϕ :
+    fill Π (frml BOT) ⊢ᴮ ϕ
 | BI_True_R Δ :
     Δ ⊢ᴮ TOP
-| BI_True_L C ϕ :
-    (fill C top ⊢ᴮ ϕ) →
-    fill C (frml TOP) ⊢ᴮ ϕ
+| BI_True_L Π ϕ :
+    (fill Π top ⊢ᴮ ϕ) →
+    fill Π (frml TOP) ⊢ᴮ ϕ
 | BI_Conj_R Δ Δ' ϕ ψ :
     (Δ ⊢ᴮ ϕ) →
     (Δ' ⊢ᴮ ψ) →
     Δ ;, Δ' ⊢ᴮ CONJ ϕ ψ
-| BI_Conj_L C ϕ ψ χ :
-    (fill C (frml ϕ ;, frml ψ) ⊢ᴮ χ) →
-    fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ
+| BI_Conj_L Π ϕ ψ χ :
+    (fill Π (frml ϕ ;, frml ψ) ⊢ᴮ χ) →
+    fill Π (frml (CONJ ϕ ψ)) ⊢ᴮ χ
 | BI_Impl_R Δ ϕ ψ :
     (Δ ;, frml ϕ ⊢ᴮ ψ) →
     Δ  ⊢ᴮ IMPL ϕ ψ
-| BI_Impl_L C Δ ϕ ψ χ :
+| BI_Impl_L Π Δ ϕ ψ χ :
     (Δ ⊢ᴮ ϕ) →
-    (fill C (frml ψ) ⊢ᴮ χ) →
-    fill C (Δ ;, frml (IMPL ϕ ψ)) ⊢ᴮ χ
+    (fill Π (frml ψ) ⊢ᴮ χ) →
+    fill Π (Δ ;, frml (IMPL ϕ ψ)) ⊢ᴮ χ
 where "Δ ⊢ᴮ ϕ" := (proves Δ%B ϕ%B).
 
 (** * Properties *)
@@ -71,9 +92,32 @@ Proof.
   - eapply BI_Equiv; [ symmetry | ]; eauto.
 Qed.
 
-Theorem seq_interp_sound {PROP : bi} (s : atom → PROP)
-        Δ ϕ : (Δ ⊢ᴮ ϕ) → seq_interp PROP s Δ ϕ.
+(* TODO: move to interp.v *)
+Lemma bunch_ctx_interp_exist {PROP : bi} (s : atom → PROP) Π {A} (P : A → PROP) :
+  bunch_ctx_interp _ s Π (∃ (i : A), P i : PROP)%I ≡
+   (∃ i, bunch_ctx_interp _ s Π (P i))%I.
 Proof.
+  revert P. induction Π as [|F Π]=>P.
+  { simpl. reflexivity. }
+  rewrite bunch_ctx_interp_cons.
+  Opaque bunch_ctx_interp.
+  destruct F; simpl.
+  + rewrite bi.sep_exist_r.
+    apply (IHΠ (λ i, P i ∗ bunch_interp PROP s Δ2)%I).
+  + rewrite bi.sep_exist_l.
+    apply (IHΠ (λ i, bunch_interp PROP s Δ1 ∗ P i)%I).
+  + rewrite bi.and_exist_r.
+    apply (IHΠ (λ i, P i ∧ bunch_interp PROP s Δ2)%I).
+  + rewrite bi.and_exist_l.
+    apply (IHΠ (λ i, bunch_interp PROP s Δ1 ∧ P i)%I).
+Qed.
+
+Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :
+  (∀ Ts T, (Ts, T) ∈ rules → rule_valid PROP Ts T) →
+  (Δ ⊢ᴮ ϕ) →
+  seq_interp PROP s Δ ϕ.
+Proof.
+  intros Hrules.
   induction 1; unfold seq_interp; simpl; eauto; try rewrite -IHproves.
   all: try by apply bunch_interp_fill_mono.
   - by rewrite -H.
@@ -81,12 +125,24 @@ Proof.
       by rewrite bi.and_elim_l.
   - apply bunch_interp_fill_mono; simpl.
     apply bi.and_intro; eauto.
+  - assert (rule_valid PROP Ts T) as HH.
+    { eapply Hrules; auto. }
+    specialize (HH (bunch_interp _ s ∘ Δs)).
+    rewrite bunch_ctx_interp_decomp.
+    rewrite bterm_ctx_alg_act.
+    rewrite HH.
+    rewrite bunch_ctx_interp_exist.
+    apply bi.exist_elim=>Ti'.
+    destruct Ti' as [Ti HTi]. simpl.
+    rewrite -bterm_ctx_alg_act.
+    rewrite -bunch_ctx_interp_decomp.
+    by apply H1.
   - by rewrite IHproves1 IHproves2.
   - by apply bi.wand_intro_r.
   - rewrite -IHproves2.
     apply bunch_interp_fill_mono; simpl.
     rewrite IHproves1. apply bi.wand_elim_r.
-  - induction C as [|C Π IH]; simpl.
+  - induction Π as [|C Π IH]; simpl.
     { apply bi.False_elim. }
     rewrite -IH.
     destruct C; simpl; apply bunch_interp_fill_mono; simpl.
@@ -98,3 +154,5 @@ Proof.
     apply bunch_interp_fill_mono; simpl.
     rewrite IHproves1. apply bi.impl_elim_r.
 Qed.
+
+End Seqcalc.

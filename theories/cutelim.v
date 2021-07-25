@@ -5,8 +5,17 @@ From iris_mod.bi Require Import bi.
 From Equations Require Import Equations.
 From bunched Require Import seqcalc seqcalc_height interp terms syntax.
 
-(* XXX: unset the results of loading Equations *)
-Global Obligation Tactic := idtac.
+Parameter rules : list (list (bterm nat) * bterm nat).
+Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
+    (Ts, T) ∈ rules → linear_bterm T.
+
+Module M.
+  Definition rules := rules.
+  Definition rules_good := rules_good.
+End M.
+Module SH := bunchHeight(M).
+Module S := Seqcalc(M).
+Import SH S.
 
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
@@ -281,6 +290,9 @@ Module Cl.
     intros Δ Hcl. simpl. eapply Hcl.
     eauto.
   Qed.
+
+  Global Instance ElemOf_PB : ElemOf bunch PB := λ a X, X a.
+  Global Instance ElemOf_C : ElemOf bunch C := λ a X, X a.
 
   Lemma cl_alt_eq (X : PB) :
     (cl X : PB) ≡
@@ -891,36 +903,6 @@ Proof.
       by apply H1.
 Qed.
 
-End Cl.
-
-Import PB Cl.
-Global Instance ElemOf_C : ElemOf bunch C := λ a X, X a.
-Global Instance ElemOf_PB : ElemOf bunch PB := λ a X, X a.
-
-Theorem cut Γ Δ ϕ ψ :
-  (Δ ⊢ᴮ ψ) →
-  (fill Γ (frml ψ) ⊢ᴮ ϕ) →
-  fill Γ Δ ⊢ᴮ ϕ.
-Proof.
-  intros H1%(seq_interp_sound (PROP:=C_alg) C_atom).
-  intros H2%(seq_interp_sound (PROP:=C_alg) C_atom).
-  simpl in H1, H2.
-  cut (seq_interp C_alg C_atom (fill Γ Δ) ϕ).
-  { simpl. intros H3.
-    destruct (pas_de_deux ϕ) as [Hϕ1 Hϕ2].
-    apply Hϕ2. unfold inner_interp.
-    apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
-    cut (formula_interp C_alg C_atom (collapse (fill Γ Δ)) (frml (collapse (fill Γ Δ)))).
-    { apply (bunch_interp_collapse C_alg C_atom). }
-    apply pas_de_deux. }
-  simpl. rewrite -H2.
-  apply bunch_interp_fill_mono, H1.
-Qed.
-
-(* Print Assumptions cut. *)
-(*  ==> Closed under the global context *)
-
-
 Lemma bterm_C_refl `{!EqDecision V, !Countable V}
       (T : bterm V) (Xs : V → C_alg) :
   ∀ (Δs : V → bunch),
@@ -934,6 +916,10 @@ Proof.
     repeat split; last reflexivity.
     + apply IHT1.    + apply IHT2.
 Qed.
+
+End Cl.
+
+Import PB Cl.
 
 Lemma blinterm_C_desc `{!EqDecision V, !Countable V}
       (T : bterm V) (TL : linear_bterm T)
@@ -974,4 +960,73 @@ Proof.
         naive_solver. }
       rewrite Heq. by f_equiv.
 Qed.
+
+Global Instance bterm_alg_act_proper `{!EqDecision V, !Countable V} {PROP : bi}
+       (T : bterm V) : Proper ((pointwise_relation _ (≡)) ==> (≡@{PROP})) (bterm_alg_act T).
+Admitted.
+
+(* TODO: move to term.v *)
+Lemma bterm_alg_act_mono {PROP : bi} `{!EqDecision V, !Countable V}
+      (T : bterm V) Xs Ys :
+  (∀ i, Xs i ⊢ Ys i) →
+  bterm_alg_act T Xs ⊢ bterm_alg_act (PROP:=PROP) T Ys.
+Proof.
+  intros HXY. induction T; simpl; auto.
+  by rewrite IHT1 IHT2.
+Qed.
+
+Global Instance cl_semimorph : @SemiMorph PB_alg C_alg cl'.
+Proof.
+  split.
+  intros X Y. by rewrite cl_sep.
+Qed.
+
+Definition ii (X : C) : PB := X.
+
+Lemma C_extensions (Ts : list (bterm nat)) (T : bterm nat) :
+    (Ts, T) ∈ M.rules → rule_valid C_alg Ts T.
+Proof.
+  intros Hs. unfold rule_valid.
+  intros Xs.
+  trans (bterm_alg_act (PROP:=C_alg) T (cl' ∘ (ii ∘ Xs))).
+  { apply bterm_alg_act_mono.
+    intros i. apply cl_unit. }
+  rewrite -(bterm_morph_commute (A:=PB_alg) (B:=C_alg)).
+  apply cl_adj. { apply _. }
+  assert (linear_bterm T) as Hlin.
+  { eapply rules_good; eauto. }
+  rewrite /bi_exist /=.
+  intros Δ H1%blinterm_C_desc ϕ Hϕ ; auto.
+  destruct H1 as (Δs & HΔs & H1).
+  rewrite H1. eapply (BI_Simple_Ext []); eauto.
+  intros Ti HTi. simpl. apply Hϕ.
+  exists (Ti ↾ HTi). simpl. by eapply bterm_C_refl.
+Qed.
+
+Theorem cut Γ Δ ϕ ψ :
+  (Δ ⊢ᴮ ψ) →
+  (fill Γ (frml ψ) ⊢ᴮ ϕ) →
+  fill Γ Δ ⊢ᴮ ϕ.
+Proof.
+  intros H1%(seq_interp_sound (PROP:=C_alg) C_atom); last first.
+  { apply C_extensions. }
+  intros H2%(seq_interp_sound (PROP:=C_alg) C_atom); last first.
+  { apply C_extensions. }
+  simpl in H1, H2.
+  cut (seq_interp C_alg C_atom (fill Γ Δ) ϕ).
+  { simpl. intros H3.
+    destruct (pas_de_deux ϕ) as [Hϕ1 Hϕ2].
+    apply Hϕ2. unfold inner_interp.
+    apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
+    cut (formula_interp C_alg C_atom (collapse (fill Γ Δ)) (frml (collapse (fill Γ Δ)))).
+    { apply (bunch_interp_collapse C_alg C_atom). }
+    apply pas_de_deux. }
+  simpl. rewrite -H2.
+  apply bunch_interp_fill_mono, H1.
+Qed.
+
+Print Assumptions cut.
+(*  ==> Closed under the global context *)
+(* Or depends only on rules and rules_good *)
+
 

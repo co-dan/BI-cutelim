@@ -11,7 +11,10 @@ From bunched Require Import seqcalc bunch_decomp.
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).
 
-Module bunchHeight.
+Module bunchHeight(R : SIMPLE_STRUCT_EXT).
+  Import R.
+  Module S := Seqcalc(R).
+  Import S.
 
   Implicit Type Δ : bunch.
   Implicit Type ψ ϕ : formula.
@@ -301,9 +304,11 @@ Module bunchHeight.
                          fill C (Δ ;, Δ') ⊢ᴮ{S n} ϕ
   | BI_Contr C Δ ϕ n : (fill C (Δ ;, Δ) ⊢ᴮ{n} ϕ) →
                      fill C Δ ⊢ᴮ{S n} ϕ
-  (* | BI_Cut C Δ ϕ ψ : (Δ ⊢ᴮ ψ) → *)
-  (*                    (fill C (frml ψ) ⊢ᴮ ϕ) → *)
-  (*                    fill C Δ ⊢ᴮ ϕ *)
+  | BI_Simple_Ext Π (Δs : nat → bunch) n
+    (Ts : list (bterm nat)) (T : bterm nat) ϕ :
+    (Ts, T) ∈ rules →
+    (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ{n} ϕ) →
+    fill Π (bterm_ctx_act T Δs) ⊢ᴮ{S n} ϕ
     (* multiplicatives *)
   | BI_Emp_R :
       empty ⊢ᴮ{0} EMP
@@ -369,6 +374,7 @@ Module bunchHeight.
     by econstructor; eauto.
     by econstructor; eauto.
     by econstructor; eauto.
+    by econstructor; eauto.
   Qed.
 
   Lemma proves_provesN Δ ϕ :
@@ -379,7 +385,8 @@ Module bunchHeight.
     all: try (destruct IHproves1 as [n1 IH1];
               destruct IHproves2 as [n2 IH2]).
     all: try by eexists; econstructor; eauto.
-  Qed.
+    admit.
+  Admitted.
 
   (** * Inversion lemmas *)
   Local Ltac bind_ctx :=
@@ -398,7 +405,7 @@ Module bunchHeight.
     intros ->; bind_ctx;
     econstructor; eauto; rewrite fill_app; by eapply IH.
 
-  Lemma wand_r_inv Δ ϕ ψ n :
+  Lemma wand_r_inv' Δ ϕ ψ n :
     (Δ ⊢ᴮ{n} WAND ϕ ψ) →
     (Δ ,, frml ϕ ⊢ᴮ{n} ψ)%B.
   Proof.
@@ -410,12 +417,16 @@ Module bunchHeight.
     - intros ->. eapply BI_Equiv.
       { rewrite -H. reflexivity. }
       by apply IHproves.
+    - intros ->. bind_ctx.
+      eapply BI_Simple_Ext; eauto.
+      intros Ti HTi. rewrite fill_app. simpl.
+      eapply H1; eauto.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
     - commute_left_rule IHproves2.
   Qed.
 
-  Lemma impl_r_inv Δ ϕ ψ n :
+  Lemma impl_r_inv' Δ ϕ ψ n :
     (Δ ⊢ᴮ{n} IMPL ϕ ψ) →
     (Δ ;, frml ϕ ⊢ᴮ{n} ψ)%B.
   Proof.
@@ -427,6 +438,10 @@ Module bunchHeight.
     - intros ->. eapply BI_Equiv.
       { rewrite -H. reflexivity. }
       by apply IHproves.
+    - intros ->. bind_ctx.
+      eapply BI_Simple_Ext; eauto.
+      intros Ti HTi. rewrite fill_app. simpl.
+      eapply H1; eauto.
     - commute_left_rule IHproves2.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
@@ -502,6 +517,52 @@ Module bunchHeight.
                    with (fill C2 (frml ϕ,, frml ψ))%B by rewrite fill_app//.
         eapply IHproves; eauto.
         rewrite /C2 fill_app//.
+    - (* ext *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2]; last first.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        eapply BI_Simple_Ext; eauto.
+        intros Ti Hi.
+        rewrite -HC0.
+        eapply IHproves; eauto.
+        apply bunch_decomp_correct. apply Hdec0.
+      + destruct H1 as [C0 [HC0 ->]].
+        apply bunch_decomp_correct in HC0.
+        simplify_eq/=.
+        apply bterm_ctx_act_decomp in HC0; last first.
+        { by eapply rules_good. }
+        destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
+        rewrite fill_app -HC0.
+        eapply BI_Simple_Ext; eauto.
+        revert Hj Hjfv IHproves H0.
+        clear.
+        intros Hj Hjfv IHproves Hpfs.
+        intros Ti HTi. specialize (Hpfs Ti HTi).
+        revert Π Hpfs. clear HTi.
+        induction Ti=>Π Hpfs.
+        { simpl.
+          destruct (decide (j = x)) as [->|?].
+          - rewrite functions.fn_lookup_insert.
+            rewrite -fill_app.
+            eapply IHproves; eauto.
+            by rewrite fill_app -Hj.
+          - rewrite functions.fn_lookup_insert_ne; auto. }
+        { simpl.
+          assert (fill ([CtxCommaL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)))%B
+            with
+          (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -711,6 +772,52 @@ Module bunchHeight.
                    with (fill C2 (frml ϕ;, frml ψ))%B by rewrite fill_app//.
         eapply IHproves; eauto.
         rewrite /C2 fill_app//.
+    - (* ext *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2]; last first.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        eapply BI_Simple_Ext; eauto.
+        intros Ti Hi.
+        rewrite -HC0.
+        eapply IHproves; eauto.
+        apply bunch_decomp_correct. apply Hdec0.
+      + destruct H1 as [C0 [HC0 ->]].
+        apply bunch_decomp_correct in HC0.
+        simplify_eq/=.
+        apply bterm_ctx_act_decomp in HC0; last first.
+        { by eapply rules_good. }
+        destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
+        rewrite fill_app -HC0.
+        eapply BI_Simple_Ext; eauto.
+        revert Hj Hjfv IHproves H0.
+        clear.
+        intros Hj Hjfv IHproves Hpfs.
+        intros Ti HTi. specialize (Hpfs Ti HTi).
+        revert Π Hpfs. clear HTi.
+        induction Ti=>Π Hpfs.
+        { simpl.
+          destruct (decide (j = x)) as [->|?].
+          - rewrite functions.fn_lookup_insert.
+            rewrite -fill_app.
+            eapply IHproves; eauto.
+            by rewrite fill_app -Hj.
+          - rewrite functions.fn_lookup_insert_ne; auto. }
+        { simpl.
+          assert (fill ([CtxCommaL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
+            with
+          (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -919,6 +1026,52 @@ Module bunchHeight.
                    with (fill C2 top)%B by rewrite fill_app//.
         eapply IHproves; eauto.
         rewrite /C2 fill_app//.
+    - (* ext *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2]; last first.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        eapply BI_Simple_Ext; eauto.
+        intros Ti Hi.
+        rewrite -HC0.
+        eapply IHproves; eauto.
+        apply bunch_decomp_correct. apply Hdec0.
+      + destruct H1 as [C0 [HC0 ->]].
+        apply bunch_decomp_correct in HC0.
+        simplify_eq/=.
+        apply bterm_ctx_act_decomp in HC0; last first.
+        { by eapply rules_good. }
+        destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
+        rewrite fill_app -HC0.
+        eapply BI_Simple_Ext; eauto.
+        revert Hj Hjfv IHproves H0.
+        clear.
+        intros Hj Hjfv IHproves Hpfs.
+        intros Ti HTi. specialize (Hpfs Ti HTi).
+        revert Π Hpfs. clear HTi.
+        induction Ti=>Π Hpfs.
+        { simpl.
+          destruct (decide (j = x)) as [->|?].
+          - rewrite functions.fn_lookup_insert.
+            rewrite -fill_app.
+            eapply IHproves; eauto.
+            by rewrite fill_app -Hj.
+          - rewrite functions.fn_lookup_insert_ne; auto. }
+        { simpl.
+          assert (fill ([CtxCommaL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ top]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ top]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ top]> Δs)))%B
+            with
+          (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ top]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ top]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -1127,6 +1280,52 @@ Module bunchHeight.
                    with (fill C2 empty)%B by rewrite fill_app//.
         eapply IHproves; eauto.
         rewrite /C2 fill_app//.
+    - (* ext *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2]; last first.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        eapply BI_Simple_Ext; eauto.
+        intros Ti Hi.
+        rewrite -HC0.
+        eapply IHproves; eauto.
+        apply bunch_decomp_correct. apply Hdec0.
+      + destruct H1 as [C0 [HC0 ->]].
+        apply bunch_decomp_correct in HC0.
+        simplify_eq/=.
+        apply bterm_ctx_act_decomp in HC0; last first.
+        { by eapply rules_good. }
+        destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
+        rewrite fill_app -HC0.
+        eapply BI_Simple_Ext; eauto.
+        revert Hj Hjfv IHproves H0.
+        clear.
+        intros Hj Hjfv IHproves Hpfs.
+        intros Ti HTi. specialize (Hpfs Ti HTi).
+        revert Π Hpfs. clear HTi.
+        induction Ti=>Π Hpfs.
+        { simpl.
+          destruct (decide (j = x)) as [->|?].
+          - rewrite functions.fn_lookup_insert.
+            rewrite -fill_app.
+            eapply IHproves; eauto.
+            by rewrite fill_app -Hj.
+          - rewrite functions.fn_lookup_insert_ne; auto. }
+        { simpl.
+          assert (fill ([CtxCommaL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ empty]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ empty]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
+            with
+          (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ empty]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -1266,8 +1465,6 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-End bunchHeight.
-
 (** Derivable rules / inversion lemmas *)
 Lemma impl_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ IMPL ϕ ψ) →
@@ -1275,7 +1472,7 @@ Lemma impl_r_inv Δ ϕ ψ :
 Proof.
   intros [n H]%bunchHeight.proves_provesN.
   eapply bunchHeight.provesN_proves.
-  by apply bunchHeight.impl_r_inv.
+  by apply impl_r_inv'.
 Qed.
 Lemma wand_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ WAND ϕ ψ) →
@@ -1283,7 +1480,7 @@ Lemma wand_r_inv Δ ϕ ψ :
 Proof.
   intros [n H]%bunchHeight.proves_provesN.
   eapply bunchHeight.provesN_proves.
-  by apply bunchHeight.wand_r_inv.
+  by apply wand_r_inv'.
 Qed.
 Lemma sep_l_inv C ϕ ψ χ :
   (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
@@ -1329,3 +1526,5 @@ Proof.
     apply IHΔ1. simpl.
     by apply conj_l_inv.
 Qed.
+
+End bunchHeight.
