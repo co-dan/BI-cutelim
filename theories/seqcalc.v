@@ -92,26 +92,6 @@ Proof.
   - eapply BI_Equiv; [ symmetry | ]; eauto.
 Qed.
 
-(* TODO: move to interp.v *)
-Lemma bunch_ctx_interp_exist {PROP : bi} (s : atom → PROP) Π {A} (P : A → PROP) :
-  bunch_ctx_interp _ s Π (∃ (i : A), P i : PROP)%I ≡
-   (∃ i, bunch_ctx_interp _ s Π (P i))%I.
-Proof.
-  revert P. induction Π as [|F Π]=>P.
-  { simpl. reflexivity. }
-  rewrite bunch_ctx_interp_cons.
-  Opaque bunch_ctx_interp.
-  destruct F; simpl.
-  + rewrite bi.sep_exist_r.
-    apply (IHΠ (λ i, P i ∗ bunch_interp PROP s Δ2)%I).
-  + rewrite bi.sep_exist_l.
-    apply (IHΠ (λ i, bunch_interp PROP s Δ1 ∗ P i)%I).
-  + rewrite bi.and_exist_r.
-    apply (IHΠ (λ i, P i ∧ bunch_interp PROP s Δ2)%I).
-  + rewrite bi.and_exist_l.
-    apply (IHΠ (λ i, bunch_interp PROP s Δ1 ∧ P i)%I).
-Qed.
-
 Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :
   (∀ Ts T, (Ts, T) ∈ rules → rule_valid PROP Ts T) →
   (Δ ⊢ᴮ ϕ) →
@@ -133,7 +113,7 @@ Proof.
     rewrite HH.
     rewrite bunch_ctx_interp_exist.
     apply bi.exist_elim=>Ti'.
-    destruct Ti' as [Ti HTi]. simpl.
+    destruct Ti' as [Ti HTi].
     rewrite -bterm_ctx_alg_act.
     rewrite -bunch_ctx_interp_decomp.
     by apply H1.

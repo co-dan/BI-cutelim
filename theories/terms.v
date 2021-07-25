@@ -75,6 +75,15 @@ Proof.
   rewrite -IHT1 -IHT2. by rewrite smor_sep.
 Qed.
 
+Lemma bterm_alg_act_mono {PROP : bi} `{!EqDecision V, !Countable V}
+      (T : bterm V) Xs Ys :
+  (∀ i, Xs i ⊢ Ys i) →
+  bterm_alg_act T Xs ⊢ bterm_alg_act (PROP:=PROP) T Ys.
+Proof.
+  intros HXY. induction T; simpl; auto.
+  by rewrite IHT1 IHT2.
+Qed.
+
 Lemma bterm_ctx_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
       (T : bterm V) (Δs : V → bunch) (s : atom → PROP) :
   bunch_interp _ s (bterm_ctx_act T Δs) =

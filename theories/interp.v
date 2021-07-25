@@ -50,32 +50,29 @@ Section interp.
   Definition seq_interp Δ ϕ : Prop :=
     (bunch_interp Δ ⊢ formula_interp ϕ).
 
-  Program Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP -n> PROP :=
-    λne P, match F with
-           | CtxCommaL Δ => P ∗ bunch_interp Δ
-           | CtxCommaR Δ => bunch_interp Δ ∗ P
-           | CtxSemicL Δ => P ∧ bunch_interp Δ
-           | CtxSemicR Δ => bunch_interp Δ ∧ P
-           end%I.
-  Next Obligation. destruct F; solve_proper. Qed.
+  Program Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
+    λ P, match F with
+        | CtxCommaL Δ => P ∗ bunch_interp Δ
+        | CtxCommaR Δ => bunch_interp Δ ∗ P
+        | CtxSemicL Δ => P ∧ bunch_interp Δ
+        | CtxSemicR Δ => bunch_interp Δ ∧ P
+        end%I.
 
-  Program Definition bunch_ctx_interp Π : PROP -n> PROP :=
-    λne P, foldl (flip bunch_ctx_item_interp) P Π.
-  Next Obligation.
-    induction Π.
-    - apply _.
-    - intros n P P' HP.
-      cbn[foldl].
-      eapply IHΠ.
-      cbn[flip]. by eapply bunch_ctx_item_interp.
-  Qed.
+  Program Definition bunch_ctx_interp Π : PROP → PROP :=
+    λ P, foldl (flip bunch_ctx_item_interp) P Π.
 
   Lemma bunch_ctx_interp_cons F Π A :
     bunch_ctx_interp (F::Π) A = bunch_ctx_interp Π (bunch_ctx_item_interp F A).
   Proof. reflexivity. Qed.
 
   Global Instance bunch_ctx_interp_proper Π : Proper ((≡) ==> (≡)) (bunch_ctx_interp Π).
-  Proof. apply _. Qed.
+  Proof.
+    induction Π as [|F Π]=>X Y HXY.
+    - simpl; auto.
+    - simpl.
+      eapply IHΠ.
+      destruct F; solve_proper.
+  Qed.
 
   Lemma bunch_ctx_interp_decomp Π Δ :
     bunch_interp (fill Π Δ) ≡ bunch_ctx_interp Π (bunch_interp Δ).
@@ -102,6 +99,25 @@ Section interp.
     induction Π as [|C Π IH]=> Δ Δ' H1; eauto.
     simpl. apply IH.
     by apply bunch_interp_fill_item_mono.
+  Qed.
+
+  Lemma bunch_ctx_interp_exist Π {I} (P : I → PROP) :
+    bunch_ctx_interp Π (∃ (i : I), P i : PROP)%I ≡
+                     (∃ i, bunch_ctx_interp Π (P i))%I.
+  Proof.
+    revert P. induction Π as [|F Π]=>P.
+    { simpl. reflexivity. }
+    rewrite bunch_ctx_interp_cons.
+    Opaque bunch_ctx_interp.
+    destruct F; simpl.
+    + rewrite bi.sep_exist_r.
+      apply (IHΠ (λ i, P i ∗ bunch_interp Δ2)%I).
+    + rewrite bi.sep_exist_l.
+      apply (IHΠ (λ i, bunch_interp Δ1 ∗ P i)%I).
+    + rewrite bi.and_exist_r.
+      apply (IHΠ (λ i, P i ∧ bunch_interp Δ2)%I).
+    + rewrite bi.and_exist_l.
+      apply (IHΠ (λ i, bunch_interp Δ1 ∧ P i)%I).
   Qed.
 
   Global Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.

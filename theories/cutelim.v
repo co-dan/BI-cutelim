@@ -13,7 +13,7 @@ Module M.
   Definition rules := rules.
   Definition rules_good := rules_good.
 End M.
-Module SH := bunchHeight(M).
+Module SH := SeqcalcHeight(M).
 Module S := Seqcalc(M).
 Import SH S.
 
@@ -959,20 +959,6 @@ Proof.
         revert Hfv Hi. set_unfold.
         naive_solver. }
       rewrite Heq. by f_equiv.
-Qed.
-
-Global Instance bterm_alg_act_proper `{!EqDecision V, !Countable V} {PROP : bi}
-       (T : bterm V) : Proper ((pointwise_relation _ (≡)) ==> (≡@{PROP})) (bterm_alg_act T).
-Admitted.
-
-(* TODO: move to term.v *)
-Lemma bterm_alg_act_mono {PROP : bi} `{!EqDecision V, !Countable V}
-      (T : bterm V) Xs Ys :
-  (∀ i, Xs i ⊢ Ys i) →
-  bterm_alg_act T Xs ⊢ bterm_alg_act (PROP:=PROP) T Ys.
-Proof.
-  intros HXY. induction T; simpl; auto.
-  by rewrite IHT1 IHT2.
 Qed.
 
 Global Instance cl_semimorph : @SemiMorph PB_alg C_alg cl'.

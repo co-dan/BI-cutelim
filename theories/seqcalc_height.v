@@ -11,7 +11,7 @@ From bunched Require Import seqcalc bunch_decomp.
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).
 
-Module bunchHeight(R : SIMPLE_STRUCT_EXT).
+Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
   Import R.
   Module S := Seqcalc(R).
   Import S.
@@ -35,15 +35,6 @@ Module bunchHeight(R : SIMPLE_STRUCT_EXT).
   where "Δ =? Γ" := (bunch_equiv Δ%B Γ%B).
 
   Definition bunch_equiv_h := rtsc (bunch_equiv).
-
-  (* TODO: prove rtsc_subrel and move to relations.v *)
-  Lemma sc_subrel {A} (R1 R2 : relation A) x y :
-    (∀ x1 x2, R1 x1 x2 → R2 x1 x2) →
-    sc R1 x y → sc R2 x y.
-  Proof.
-    intros HR H1.
-    destruct H1 as [H1 | H1]; by econstructor; apply HR.
-  Qed.
 
   Lemma bunch_equiv_1 Δ Δ' :
     (Δ =? Δ') → (Δ ≡ Δ').
@@ -309,7 +300,7 @@ Module bunchHeight(R : SIMPLE_STRUCT_EXT).
     (Ts, T) ∈ rules →
     (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ{n} ϕ) →
     fill Π (bterm_ctx_act T Δs) ⊢ᴮ{S n} ϕ
-    (* multiplicatives *)
+  (* multiplicatives *)
   | BI_Emp_R :
       empty ⊢ᴮ{0} EMP
   | BI_Emp_L C ϕ n :
@@ -377,6 +368,34 @@ Module bunchHeight(R : SIMPLE_STRUCT_EXT).
     by econstructor; eauto.
   Qed.
 
+(* TODO: move to std++ *)
+Lemma Forall_exists_witness A B : forall (P : A → B → Prop) l,
+      Forall (fun y => exists x, P x y) l <-> exists l',
+        length l' = length l ∧
+        Forall (fun '(x, y) => P x y) (zip l' l).
+Proof.
+  induction l as [|a l IHl]; split; intros HF.
+  - exists nil. split; auto. constructor.
+  - constructor.
+  - inversion_clear HF as [| y ? [x Hx] HFtl]; subst.
+    destruct (proj1 IHl HFtl) as [l' [? Heq]]; subst.
+    exists (x :: l'). split; simpl; first by f_equiv.
+    by constructor.
+  - destruct HF as [l' [Heq IH]].
+    destruct l' as [|b l'].
+    { simpl in Heq. inversion Heq. }
+    simpl in IH. inversion IH; simplify_eq/=.
+    econstructor; eauto.
+    apply IHl. eexists; eauto.
+Qed.
+
+Lemma proves_le n m Δ ϕ :
+  n ≤ m → (Δ ⊢ᴮ{n} ϕ) → Δ ⊢ᴮ{m} ϕ.
+Proof.
+  induction 1; auto.
+  intros H1. eapply BI_Higher. eauto.
+Qed.
+
   Lemma proves_provesN Δ ϕ :
     (Δ ⊢ᴮ ϕ) → ∃ n, Δ ⊢ᴮ{n} ϕ.
   Proof.
@@ -385,8 +404,28 @@ Module bunchHeight(R : SIMPLE_STRUCT_EXT).
     all: try (destruct IHproves1 as [n1 IH1];
               destruct IHproves2 as [n2 IH2]).
     all: try by eexists; econstructor; eauto.
-    admit.
-  Admitted.
+    (* The worst case: simple structural rules *)
+    apply (Forall_forall (λ Ti, ∃ n : nat, fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ{ n} ϕ)) in H1.
+    apply Forall_exists_witness in H1.
+    destruct H1 as (ns & Hns & HTs).
+    exists (S (max_list ns)).
+    eapply BI_Simple_Ext; eauto.
+    intros Ti HTi.
+    revert HTs. rewrite Forall_forall. intros HTs.
+    destruct (elem_of_list_lookup_1 _ _ HTi) as [i Hi].
+    destruct (ns !! i) as [n|] eqn:Hn; last first.
+    { exfalso.
+      apply lookup_lt_Some in Hi.
+      apply lookup_ge_None_1 in Hn. lia. }
+    assert ((n, Ti) ∈ zip ns Ts) as Hni.
+    { eapply elem_of_list_lookup_2.
+      rewrite lookup_zip_with_Some. do 2 eexists.
+      eauto. }
+    specialize (HTs _ Hni). simpl in HTs.
+    eapply proves_le; last eauto.
+    eapply max_list_elem_of_le.
+    by eapply elem_of_list_lookup_2.
+  Qed.
 
   (** * Inversion lemmas *)
   Local Ltac bind_ctx :=
@@ -1470,45 +1509,45 @@ Lemma impl_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ IMPL ϕ ψ) →
   (Δ ;, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
   by apply impl_r_inv'.
 Qed.
 Lemma wand_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ WAND ϕ ψ) →
   (Δ ,, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
   by apply wand_r_inv'.
 Qed.
 Lemma sep_l_inv C ϕ ψ χ :
   (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
   (fill C (frml ϕ,, frml ψ) ⊢ᴮ χ).
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  eapply bunchHeight.sep_l_inv'; eauto.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  eapply sep_l_inv'; eauto.
 Qed.
 Lemma conj_l_inv C ϕ ψ χ :
   (fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
   (fill C (frml ϕ;, frml ψ) ⊢ᴮ χ).
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  eapply bunchHeight.conj_l_inv'; eauto.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  eapply conj_l_inv'; eauto.
 Qed.
 Lemma collapse_l_inv C Δ ϕ :
   (fill C (frml (collapse Δ)) ⊢ᴮ ϕ) →
   (fill C Δ ⊢ᴮ ϕ).
 Proof.
   revert C. induction Δ; simpl; first done.
-  - intros C [n H]%bunchHeight.proves_provesN.
-    eapply bunchHeight.provesN_proves.
-    eapply bunchHeight.top_l_inv'; eauto.
-  - intros C [n H]%bunchHeight.proves_provesN.
-    eapply bunchHeight.provesN_proves.
-    eapply bunchHeight.emp_l_inv'; eauto.
+  - intros C [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply top_l_inv'; eauto.
+  - intros C [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply emp_l_inv'; eauto.
   - intros C H1.
     replace (fill C (Δ1,, Δ2))%B
       with (fill (CtxCommaR Δ1::C) Δ2) by reflexivity.
@@ -1527,4 +1566,4 @@ Proof.
     by apply conj_l_inv.
 Qed.
 
-End bunchHeight.
+End SeqcalcHeight.
