@@ -105,6 +105,26 @@ Proof.
   - eapply BI_Equiv; [ symmetry | ]; eauto.
 Qed.
 
+Lemma collapse_l (Π : bunch_ctx) (Δ : bunch) (ϕ : formula) :
+    (fill Π Δ ⊢ᴮ ϕ) → fill Π (frml (collapse Δ)) ⊢ᴮ ϕ.
+Proof.
+  revert Π. induction Δ=>Π; simpl; eauto.
+  - intros HX.
+    by apply BI_True_L, HX.
+  - intros HX.
+    by apply BI_Emp_L, HX.
+  - intros HX.
+    apply BI_Sep_L.
+    apply (IHΔ1 (CtxCommaL _::Π)); simpl.
+    apply (IHΔ2 (CtxCommaR _::Π)); simpl.
+    apply HX.
+  - intros HX.
+    apply BI_Conj_L.
+    apply (IHΔ1 (CtxSemicL _::Π)); simpl.
+    apply (IHΔ2 (CtxSemicR _::Π)); simpl.
+    apply HX.
+Qed.
+
 Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :
   (∀ Ts T, (Ts, T) ∈ rules → rule_valid PROP Ts T) →
   (Δ ⊢ᴮ ϕ) →

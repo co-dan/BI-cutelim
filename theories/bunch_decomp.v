@@ -180,4 +180,33 @@ Proof.
         { naive_solver. }
         rewrite fn_lookup_insert_ne//.
       * apply HH.
+  - simpl. simp linear_bterm in Hlin.
+    destruct Hlin as (Ht12 & Hlin1 & Hlin2).
+    intros Ht. symmetry in Ht.
+    apply bunch_decomp_complete in Ht.
+    inversion Ht; simplify_eq/=.
+    + apply bunch_decomp_correct in H3.
+      specialize (IHT1 _ Hlin1 H3) as (j & Π₀ & Hjfv & Hj & HH).
+      exists j, Π₀. repeat split; auto.
+      { simp term_fv. set_solver. }
+      intros Γ. rewrite fill_app/=. f_equiv.
+      * apply HH.
+      * assert (j ∉ term_fv T2).
+        { set_solver. }
+        apply bterm_ctx_act_fv.
+        intros i. destruct (decide (i = j)) as [->|?].
+        { naive_solver. }
+        rewrite fn_lookup_insert_ne//.
+    + apply bunch_decomp_correct in H3.
+      specialize (IHT2 _ Hlin2 H3) as (j & Π₀ & Hjfv & Hj & HH).
+      exists j, Π₀. repeat split; auto.
+      { simp term_fv. set_solver. }
+      intros Γ. rewrite fill_app/=. f_equiv.
+      * assert (j ∉ term_fv T1).
+        { set_solver. }
+        apply bterm_ctx_act_fv.
+        intros i. destruct (decide (i = j)) as [->|?].
+        { naive_solver. }
+        rewrite fn_lookup_insert_ne//.
+      * apply HH.
 Qed.

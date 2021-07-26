@@ -602,6 +602,20 @@ Qed.
             by rewrite fill_app//.
           eapply IHTi2.
           rewrite fill_app/=//. }
+        { simpl.
+          assert (fill ([CtxSemicL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs);,bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)))%B
+            with
+          (fill ([CtxSemicR (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ,, frml ψ)]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -853,6 +867,20 @@ Qed.
              (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
             with
           (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
+        { simpl.
+          assert (fill ([CtxSemicL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs);,bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
+            with
+          (fill ([CtxSemicR (bterm_ctx_act Ti1 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs))]++Π)
                 (bterm_ctx_act Ti2 (<[j:=fill Π₀ (frml ϕ;, frml ψ)]> Δs)))%B
             by rewrite fill_app//.
           eapply IHTi2.
@@ -1111,6 +1139,20 @@ Qed.
             by rewrite fill_app//.
           eapply IHTi2.
           rewrite fill_app/=//. }
+        { simpl.
+          assert (fill ([CtxSemicL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ top]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ top]> Δs);,bterm_ctx_act Ti2 (<[j:=fill Π₀ top]> Δs)))%B
+            with
+          (fill ([CtxSemicR (bterm_ctx_act Ti1 (<[j:=fill Π₀ top]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ top]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
     - (* emp R *)
       exfalso.
       apply bunch_decomp_complete in Heq.
@@ -1361,6 +1403,20 @@ Qed.
              (<[j:=fill Π₀ empty]> Δs),,bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
             with
           (fill ([CtxCommaR (bterm_ctx_act Ti1 (<[j:=fill Π₀ empty]> Δs))]++Π)
+                (bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
+            by rewrite fill_app//.
+          eapply IHTi2.
+          rewrite fill_app/=//. }
+        { simpl.
+          assert (fill ([CtxSemicL (bterm_ctx_act Ti2 Δs)]++Π) (bterm_ctx_act Ti1 (<[j:=fill Π₀ empty]> Δs)) ⊢ᴮ{ n0} χ) as HH1.
+          { eapply IHTi1. rewrite fill_app /=. eauto. }
+          rewrite fill_app in HH1.
+          simpl in HH1.
+          replace
+          (fill Π (bterm_ctx_act Ti1
+             (<[j:=fill Π₀ empty]> Δs);,bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
+            with
+          (fill ([CtxSemicR (bterm_ctx_act Ti1 (<[j:=fill Π₀ empty]> Δs))]++Π)
                 (bterm_ctx_act Ti2 (<[j:=fill Π₀ empty]> Δs)))%B
             by rewrite fill_app//.
           eapply IHTi2.

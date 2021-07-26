@@ -374,21 +374,9 @@ Module Cl.
     X (fill Γ Δ) → X (fill Γ (frml (collapse Δ))).
   Proof.
     destruct X as [X Xcl]. simpl.
-    revert Γ. induction Δ=>Γ; simpl; eauto.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      by apply BI_True_L, Hϕ.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      by apply BI_Emp_L, Hϕ.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      apply BI_Sep_L, Hϕ.
-      apply (IHΔ1 (CtxCommaL _::Γ)); simpl.
-      apply (IHΔ2 (CtxCommaR _::Γ)); simpl.
-      apply HX.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      apply BI_Conj_L, Hϕ.
-      apply (IHΔ1 (CtxSemicL _::Γ)); simpl.
-      apply (IHΔ2 (CtxSemicR _::Γ)); simpl.
-      apply HX.
+    rewrite !Xcl. intros HX ϕ Hϕ.
+    simpl in HX. apply collapse_l.
+    by apply HX.
   Qed.
 
   Lemma C_collapse_inv (X : C) Γ Δ :
@@ -814,21 +802,6 @@ Proof.
   apply bi.wand_intro_l. apply cl_unit.
 Qed.
 
-(* Lemma cl_and (X Y : PB) : *)
-(*   cl (PB_and X Y) ≡ C_and (cl' X) (cl' Y). *)
-(* Proof. *)
-(*   rewrite /C_and. simpl. *)
-(*   split. *)
-(*   { apply cl_adj; first apply _. *)
-(*     f_equiv; apply cl_unit. } *)
-(*   revert Δ. *)
-(*   cut ((C_and (cl' X) (cl' Y)) ⊢ cl' (PB_and X Y)). *)
-(*   { intros H1 Δ. apply (H1 Δ). } *)
-(*   eapply bi.impl_elim_l'. *)
-(*   apply (cl'_adj X (C_impl (cl' Y) (cl' (PB_and X Y)))). *)
-(*   simpl. *)
-(* Admitted. *)
-
 Definition C_atom (a : atom) := Fint' (ATOM a).
 
 Definition inner_interp : formula → C
@@ -915,33 +888,54 @@ Proof.
   - apply cl_unit. do 2 eexists.
     repeat split; last reflexivity.
     + apply IHT1.    + apply IHT2.
+  - split.
+    + by apply C_weaken.
+    + rewrite comm. by apply C_weaken.
 Qed.
 
 End Cl.
 
 Import PB Cl.
 
+Program Definition PB_blinterm_interp `{!EqDecision V, !Countable V} 
+      (T : bterm V) (Xs : V → C_alg) : PB :=
+  {| PBPred := λ Δ, ∃ (Δs : V → bunch),
+    (forall (i : V), (Δs i) ∈ (Xs i)) ∧
+    Δ ≡ bterm_ctx_act T Δs |}.
+Next Obligation. solve_proper. Qed.
+
+Definition C_blinterm_interp `{!EqDecision V, !Countable V} 
+      (T : bterm V)       (Xs : V → C_alg) : C := cl' (PB_blinterm_interp T Xs).
+
 Lemma blinterm_C_desc `{!EqDecision V, !Countable V}
       (T : bterm V) (TL : linear_bterm T)
-      (Xs : V → C_alg) (Δ : bunch) :
-  bterm_alg_act (PROP:=PB_alg) T Xs Δ →
-  ∃ (Δs : V → bunch),
-    (forall (i : V), (Δs i) ∈ (Xs i)) ∧
-    Δ ≡ bterm_ctx_act T Δs.
+      (Xs : V → C_alg) :
+  bterm_alg_act (PROP:=C_alg) T Xs ⊢ C_blinterm_interp T Xs.
 Proof.
-  revert Δ Xs. induction T=>Δ Xs /=.
-  - intros HXs.
+  revert Xs. induction T=>Xs /=.
+  - intros Δ HXs. apply cl_unit.
     exists (λ (i : V),
                 if decide (i = x) then Δ
                 else frml BOT).
-    rewrite decide_True//. split; auto.
+    rewrite /= decide_True//.
+    split; last done.
     intros i. case_decide; simplify_eq/=; auto.
     apply C_inhabited.
-  - intros (Δ1 & Δ2 & H1 & H2 & Heq).
-    simp linear_bterm in TL.
+  - simp linear_bterm in TL.
     destruct TL as (Hfv & HL1 & HL2).
-    destruct (IHT1 HL1 _ _ H1) as (Δs1 & HΔs1 & HDs1eq).
-    destruct (IHT2 HL2 _ _ H2) as (Δs2 & HΔs2 & HDs2eq).
+    rewrite IHT1 //. rewrite IHT2 //.
+    apply cl_adj. { apply _. }
+    apply bi.wand_elim_l'.
+    apply cl_adj. { apply _. }
+    apply bi.wand_intro_r.
+    apply bi.wand_elim_r'.
+    apply cl_adj. { apply _. }
+    apply bi.wand_intro_l.
+    intros Δ.
+    intros (Δ1 & Δ2 & H1 & H2 & ->).
+    destruct H1 as (Δs1 & HΔs1 & HDs1eq).
+    destruct H2 as (Δs2 & HΔs2 & HDs2eq).
+    apply cl_unit. simpl.
     pose (Δs := λ (x : V),
                 if decide (x ∈ term_fv T1) then Δs1 x
                 else Δs2 x).
@@ -958,13 +952,47 @@ Proof.
         case_decide; auto. exfalso.
         revert Hfv Hi. set_unfold.
         naive_solver. }
-      rewrite Heq. by f_equiv.
-Qed.
-
-Global Instance cl_semimorph : @SemiMorph PB_alg C_alg cl'.
-Proof.
-  split.
-  intros X Y. by rewrite cl_sep.
+      by f_equiv.
+  - simp linear_bterm in TL.
+    destruct TL as (Hfv & HL1 & HL2).
+    rewrite IHT1 //. rewrite IHT2 //.
+    intros Δ [H1 H2] ϕ Hϕ.
+    eapply (BI_Contr []) ; simpl.
+    simpl in *.
+    apply (collapse_l_inv ([CtxSemicR Δ])).
+    simpl. apply impl_r_inv.
+    eapply H1.
+    intros Δ1 HΔ1. simpl.
+    apply BI_Impl_R.
+    rewrite comm.
+    apply (collapse_l [CtxSemicL Δ1]). simpl.
+    apply (collapse_l_inv ([CtxSemicR Δ])). simpl.
+    apply impl_r_inv.
+    eapply H2.
+    intros Δ2 HΔ2. simpl.
+    apply BI_Impl_R. rewrite comm.
+    apply (collapse_l [CtxSemicL Δ2]). simpl.
+    eapply Hϕ.
+    destruct HΔ1 as (Δs1 & HΔs1 & HDs1eq).
+    destruct HΔ2 as (Δs2 & HΔs2 & HDs2eq).
+    pose (Δs := λ (x : V),
+                if decide (x ∈ term_fv T1) then Δs1 x
+                else Δs2 x).
+    exists Δs. split.
+    + intros i. unfold Δs.
+      case_decide; auto.
+    + simpl.
+      assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
+      { apply bterm_ctx_act_fv.
+        unfold Δs. intros i Hi.
+        case_decide; auto. exfalso. auto. }
+      assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
+      { apply bterm_ctx_act_fv.
+        unfold Δs. intros i Hi.
+        case_decide; auto. exfalso.
+        revert Hfv Hi. set_unfold.
+        naive_solver. }
+      by f_equiv.
 Qed.
 
 Definition ii (X : C) : PB := X.
@@ -977,16 +1005,19 @@ Proof.
   trans (bterm_alg_act (PROP:=C_alg) T (cl' ∘ (ii ∘ Xs))).
   { apply bterm_alg_act_mono.
     intros i. apply cl_unit. }
-  rewrite -(bterm_morph_commute (A:=PB_alg) (B:=C_alg)).
-  apply cl_adj. { apply _. }
   assert (linear_bterm T) as Hlin.
   { eapply rules_good; eauto. }
+  rewrite blinterm_C_desc //.
+  apply cl_adj. { apply _. }
   rewrite /bi_exist /=.
-  intros Δ H1%blinterm_C_desc ϕ Hϕ ; auto.
+  intros Δ H1 ϕ Hϕ ; auto.
   destruct H1 as (Δs & HΔs & H1).
   rewrite H1. eapply (BI_Simple_Ext []); eauto.
   intros Ti HTi. simpl. apply Hϕ.
-  exists (Ti ↾ HTi). simpl. by eapply bterm_C_refl.
+  exists (Ti ↾ HTi). simpl. eapply bterm_C_refl.
+  intros i. specialize (HΔs i). revert HΔs.
+  unfold ii. simpl. generalize (Xs i)=>X.
+  apply X.
 Qed.
 
 Theorem cut Γ Δ ϕ ψ :
@@ -1011,8 +1042,7 @@ Proof.
   apply bunch_interp_fill_mono, H1.
 Qed.
 
-Print Assumptions cut.
-(*  ==> Closed under the global context *)
-(* Or depends only on rules and rules_good *)
+(* Print Assumptions cut. *)
+(* ==> Depends only on rules and rules_good *)
 
 
