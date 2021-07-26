@@ -4,21 +4,24 @@ From iris_mod.bi Require Import bi.
 From bunched Require Export syntax interp terms.
 
 Module Type SIMPLE_STRUCT_EXT.
-  Parameter rules : list (list (bterm nat) * bterm nat).
-  Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
-      (Ts, T) ∈ rules → linear_bterm T.
   (** A /simple structural rule/ is a rule of the form 
 
       Π(T₁[Δs]) ⊢ ϕ ... Π(Tₙ[Δs]) ⊢ ϕ
      ----------------------------------
            Π(T[Δs]) ⊢ ϕ
 
-     where the T's are bunched terms (bunched contexts with variables).
-     Furthermore, `T` (at the bottom) is _linear_: no varriable occurs
-     more than once.
 
-    We formalize a set of such rules as lists of `([T₁; ..; Tₙ], T)`.
+     where the T's are bunched terms (bunches built out of commas,
+     semicolons, and variables). Furthermore, `T` (at the bottom)
+     is _linear_: no varriable occurs more than once.
+
+     We formalize a set of such rules as lists of tuples :
+        `([T₁; ..; Tₙ], T)`.
 *)
+
+  Parameter rules : list (list (bterm nat) * bterm nat).
+  Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
+      (Ts, T) ∈ rules → linear_bterm T.
 
 End SIMPLE_STRUCT_EXT.
 

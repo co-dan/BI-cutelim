@@ -5,6 +5,7 @@ From iris_mod.bi Require Import bi.
 From Equations Require Import Equations.
 From bunched Require Import seqcalc seqcalc_height interp terms syntax.
 
+(** * Parameters to the proof: a list of simple structural extensions *)
 Parameter rules : list (list (bterm nat) * bterm nat).
 Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
     (Ts, T) ∈ rules → linear_bterm T.
@@ -17,6 +18,7 @@ Module SH := SeqcalcHeight(M).
 Module S := Seqcalc(M).
 Import SH S.
 
+(** * Construction of the powerset algebra over the monoid of bunches *)
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
 Module PB.
@@ -208,14 +210,14 @@ Module PB.
 
 End PB.
 
+(** * Construction of the algebra of closed sets *)
 Module Cl.
   Import PB.
 
+  (* Definition of the principal closed sets and the closure operator *)
   Program Definition Fint (ϕ : formula) : PB :=
     {| PBPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
   Next Obligation. solve_proper. Qed.
-
-  Definition ClBase := { X : PB | ∃ ϕ, X ≡ Fint ϕ }.
 
   Program Definition cl (X : PB) : PB :=
     @MkPB (λ Δ, ∀ (ϕ : formula), ((X : PB_alg) ⊢ Fint ϕ) → Δ ⊢ᴮ ϕ) _.
@@ -228,6 +230,13 @@ Module Cl.
   Record C :=
     { CPred :> PB ; CPred_closed : Is_closed CPred }.
 
+  Global Instance C_equiv : Equiv C := PB_equiv.
+  Definition C_entails (X Y : C) : Prop := PB_entails X Y.
+
+  (* Instances and laws needed to define other connectives *)
+  Global Instance ElemOf_PB : ElemOf bunch PB := λ a X, X a.
+  Global Instance ElemOf_C : ElemOf bunch C := λ a X, X a.
+
   Global Existing Instance CPred_closed.
 
   Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) X.
@@ -236,6 +245,27 @@ Module Cl.
     by apply PBPred_proper.
   Qed.
 
+  Global Instance C_equiv_equivalence : Equivalence (≡@{C}).
+  Proof.
+    rewrite /equiv /C_equiv /PB_equiv.
+    split; repeat intro; naive_solver.
+  Qed.
+
+  Global Instance C_entail_proper : Proper ((≡) ==> (≡) ==> (↔)) C_entails.
+  Proof.
+    intros X1 X2 HX Y1 Y2 HY. unfold C_entails.
+    split.
+    - intros H1 Δ.
+      specialize (HX Δ).
+      specialize (HY Δ).
+      naive_solver.
+    - intros H1 Δ.
+      specialize (HX Δ).
+      specialize (HY Δ).
+      naive_solver.
+  Qed.
+
+  (* monadic operations for cl *)
   Lemma cl_unit X : X ⊢ cl (X : PB_alg).
   Proof.
     intros Δ Hx. simpl. intros ϕ Hϕ.
@@ -257,21 +287,29 @@ Module Cl.
     intros H2. by eapply H2.
   Qed.
 
+  Lemma cl_adj (X : PB) (Y : PB) `{!Is_closed Y} :
+    (X ⊢@{PB_alg} Y) → cl X ⊢@{PB_alg} Y.
+  Proof.
+    rewrite (@closed_eq_cl Y).
+    rewrite -{2}(cl_idemp Y).
+    apply cl_mono.
+  Qed.
+
   Global Instance cl_proper : Proper ((≡) ==> (≡)) cl.
   Proof.
     intros X Y HXY.
     split; eapply cl_mono; by rewrite HXY.
   Qed.
 
+  Global Instance Is_closed_cl (X : PB) : Is_closed (cl X).
+  Proof.
+    rewrite /Is_closed. by rewrite cl_idemp.
+  Qed.
+
   Global Instance Is_closed_proper : Proper ((≡) ==> (↔)) Is_closed.
   Proof.
     intros X Y HXY. unfold Is_closed.
     by rewrite HXY.
-  Qed.
-
-  Global Instance Is_closed_cl (X : PB) : Is_closed (cl X).
-  Proof.
-    rewrite /Is_closed. by rewrite cl_idemp.
   Qed.
 
   Lemma Is_closed_inc (X : PB) :
@@ -283,6 +321,10 @@ Module Cl.
     - eapply H1.
   Qed.
 
+  (* Specializing [cl : PB → PB] to [PB → C] *)
+  Program Definition cl' (X : PB) : C :=
+    {| CPred := cl X |}.
+
   Program Definition Fint' ϕ : C :=
     {| CPred := Fint ϕ |}.
   Next Obligation.
@@ -291,9 +333,8 @@ Module Cl.
     eauto.
   Qed.
 
-  Global Instance ElemOf_PB : ElemOf bunch PB := λ a X, X a.
-  Global Instance ElemOf_C : ElemOf bunch C := λ a X, X a.
-
+  (* Alternative descriptions of the closure operator, internally in
+  the language of the BI algebra *)
   Lemma cl_alt_eq (X : PB) :
     (cl X : PB) ≡
       (∀ Z : { ϕ : formula | X ⊢@{PB_alg} Fint ϕ },
@@ -335,6 +376,7 @@ Module Cl.
       apply HXY.
   Qed.
 
+  (* General closure properties of closed sets *)
   Lemma C_inhabited (X : C) : X (frml BOT).
   Proof.
     destruct X as [X Xcl]. simpl.
@@ -386,32 +428,6 @@ Module Cl.
     rewrite !Xcl. intros HX ϕ Hϕ.
     simpl in HX. apply collapse_l_inv.
     by apply HX.
-  Qed.
-
-  Program Definition cl' (X : PB) : C :=
-    {| CPred := cl X |}.
-
-  Global Instance C_equiv : Equiv C := PB_equiv.
-  Global Instance C_equiv_equivalence : Equivalence (≡@{C}).
-  Proof.
-    rewrite /equiv /C_equiv /PB_equiv.
-    split; repeat intro; naive_solver.
-  Qed.
-
-  Definition C_entails (X Y : C) : Prop := PB_entails X Y.
-
-  Global Instance C_entail_proper : Proper ((≡) ==> (≡) ==> (↔)) C_entails.
-  Proof.
-    intros X1 X2 HX Y1 Y2 HY. unfold C_entails.
-    split.
-    - intros H1 Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      naive_solver.
-    - intros H1 Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      naive_solver.
   Qed.
 
   Global Instance PB_and_Is_closed X Y :
@@ -521,13 +537,6 @@ Module Cl.
   Local Infix "∧" := C_and.
   Local Infix "∨" := C_or.
 
-  Lemma cl_adj (X : PB) (Y : PB) `{!Is_closed Y} :
-    (X ⊢@{PB_alg} Y) → cl' X ⊢@{PB_alg} Y.
-  Proof.
-    rewrite (@closed_eq_cl Y).
-    rewrite -{2}(cl_idemp Y).
-    apply cl_mono.
-  Qed.
   Lemma cl'_adj (X : PB) (Y : C) :
     (X ⊢@{PB_alg} (Y : PB_alg)) → cl' X ⊢ Y.
   Proof.
@@ -535,7 +544,6 @@ Module Cl.
     { apply _. }
     apply H1.
   Qed.
-
   Lemma impl_intro_r (P Q R : C) : (P ∧ Q ⊢ R) → P ⊢ Q → R.
   Proof.
     intros H1 Δ HP. intros Δ' HQ.
@@ -897,6 +905,10 @@ End Cl.
 
 Import PB Cl.
 
+
+(** ** An alternative description of the closed sets `T[Xs]` for linear terms *)
+
+(* T[Xs] = { T[Δs] | ∀ i, Δs i ∈ Xs i } *)
 Program Definition PB_blinterm_interp `{!EqDecision V, !Countable V} 
       (T : bterm V) (Xs : V → C_alg) : PB :=
   {| PBPred := λ Δ, ∃ (Δs : V → bunch),
@@ -904,8 +916,8 @@ Program Definition PB_blinterm_interp `{!EqDecision V, !Countable V}
     Δ ≡ bterm_ctx_act T Δs |}.
 Next Obligation. solve_proper. Qed.
 
-Definition C_blinterm_interp `{!EqDecision V, !Countable V} 
-      (T : bterm V)       (Xs : V → C_alg) : C := cl' (PB_blinterm_interp T Xs).
+Definition C_blinterm_interp `{!EqDecision V, !Countable V}
+   (T : bterm V) (Xs : V → C_alg) : C := cl' (PB_blinterm_interp T Xs).
 
 Lemma blinterm_C_desc `{!EqDecision V, !Countable V}
       (T : bterm V) (TL : linear_bterm T)
@@ -995,14 +1007,12 @@ Proof.
       by f_equiv.
 Qed.
 
-Definition ii (X : C) : PB := X.
-
 Lemma C_extensions (Ts : list (bterm nat)) (T : bterm nat) :
     (Ts, T) ∈ M.rules → rule_valid C_alg Ts T.
 Proof.
   intros Hs. unfold rule_valid.
   intros Xs.
-  trans (bterm_alg_act (PROP:=C_alg) T (cl' ∘ (ii ∘ Xs))).
+  trans (bterm_alg_act (PROP:=C_alg) T (cl' ∘ ( Xs))).
   { apply bterm_alg_act_mono.
     intros i. apply cl_unit. }
   assert (linear_bterm T) as Hlin.
@@ -1016,8 +1026,7 @@ Proof.
   intros Ti HTi. simpl. apply Hϕ.
   exists (Ti ↾ HTi). simpl. eapply bterm_C_refl.
   intros i. specialize (HΔs i). revert HΔs.
-  unfold ii. simpl. generalize (Xs i)=>X.
-  apply X.
+  simpl. generalize (Xs i)=>X. apply X.
 Qed.
 
 Theorem cut Γ Δ ϕ ψ :
