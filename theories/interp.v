@@ -25,6 +25,7 @@ Section interp.
     | BOT => False
     | ATOM a => s a
     | CONJ ϕ ψ => formula_interp ϕ ∧ formula_interp ψ
+    | DISJ ϕ ψ => formula_interp ϕ ∨ formula_interp ψ
     | SEP ϕ ψ => formula_interp ϕ ∗ formula_interp ψ
     | IMPL ϕ ψ => formula_interp ϕ → formula_interp ψ
     | WAND ϕ ψ => formula_interp ϕ -∗ formula_interp ψ

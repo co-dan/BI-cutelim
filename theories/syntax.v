@@ -15,6 +15,7 @@ Inductive formula : Type :=
 | BOT
 | ATOM (A : atom)
 | CONJ (ϕ ψ : formula)
+| DISJ (ϕ ψ : formula)
 | SEP (ϕ ψ : formula)
 | IMPL (ϕ ψ : formula)
 | WAND (ϕ ψ : formula)

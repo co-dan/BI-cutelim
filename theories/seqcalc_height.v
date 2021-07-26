@@ -335,6 +335,16 @@ Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
   | BI_Conj_L C ϕ ψ χ n :
       (fill C (frml ϕ ;, frml ψ) ⊢ᴮ{n} χ) →
       fill C (frml (CONJ ϕ ψ)) ⊢ᴮ{S n} χ
+  | BI_Disj_R1 Δ ϕ ψ n :
+      (Δ ⊢ᴮ{n} ϕ) →
+      Δ ⊢ᴮ{S n} DISJ ϕ ψ
+  | BI_Disj_R2 Δ ϕ ψ n :
+      (Δ ⊢ᴮ{n} ψ) →
+      Δ ⊢ᴮ{S n} DISJ ϕ ψ
+  | BI_Disj_L Π ϕ ψ χ n m :
+      (fill Π (frml ϕ) ⊢ᴮ{n} χ) →
+      (fill Π (frml ψ) ⊢ᴮ{m} χ) →
+      fill Π (frml (DISJ ϕ ψ)) ⊢ᴮ{S (n `max` m)} χ
   | BI_Impl_R Δ ϕ ψ n :
       (Δ ;, frml ϕ ⊢ᴮ{n} ψ) →
       Δ  ⊢ᴮ{S n} IMPL ϕ ψ
@@ -348,6 +358,11 @@ Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
     (Δ ⊢ᴮ{ n } ϕ) → Δ ⊢ᴮ ϕ.
   Proof.
     induction 1; eauto.
+    (* TODO: what is going on here?
+       all: by econstructor; eauto *)
+    by econstructor; eauto.
+    by econstructor; eauto.
+    by econstructor; eauto.
     by econstructor; eauto.
     by econstructor; eauto.
     by econstructor; eauto.
@@ -462,6 +477,10 @@ Qed.
       eapply H1; eauto.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
+    - intros ?; simplify_eq/=.
+      bind_ctx. eapply BI_Disj_L.
+      + rewrite fill_app/=. by eapply IHproves1.
+      + rewrite fill_app/=. by eapply IHproves2.
     - commute_left_rule IHproves2.
   Qed.
 
@@ -482,6 +501,10 @@ Qed.
       intros Ti HTi. rewrite fill_app. simpl.
       eapply H1; eauto.
     - commute_left_rule IHproves2.
+    - intros ?; simplify_eq/=.
+      bind_ctx. eapply BI_Disj_L.
+      + rewrite fill_app/=. by eapply IHproves1.
+      + rewrite fill_app/=. by eapply IHproves2.
     - intros ?; simplify_eq/=. by apply BI_Higher.
     - commute_left_rule IHproves2.
   Qed.
@@ -730,6 +753,27 @@ Qed.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
       assert ((fill C (frml ϕ,, frml ψ);, frml ϕ0) =
@@ -999,6 +1043,27 @@ Qed.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
       assert ((fill C (frml ϕ;, frml ψ);, frml ϕ0) =
@@ -1267,6 +1332,27 @@ Qed.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
       assert ((fill C top;, frml ϕ0) =
@@ -1535,6 +1621,27 @@ Qed.
         rewrite -HC0.
         eapply IHproves; eauto.
         apply bunch_decomp_correct. apply Hdec0.
+    - (* disj R 1 *)
+      eapply BI_Disj_R1.
+      eapply IHproves; eauto.
+    - (* disj R 2 *)
+      eapply BI_Disj_R2.
+      eapply IHproves; eauto.
+    - (* disj L *)
+      apply bunch_decomp_complete in Heq.
+      apply bunch_decomp_ctx in Heq.
+      destruct Heq as [H1 | H2].
+      + destruct H1 as [C1 [HC0 HC]].
+        inversion HC0; simplify_eq/=.
+      + destruct H2 as (C0 & C1 & HC0 & HC1 & Hdec0).
+        rewrite -HC1.
+        apply BI_Disj_L.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
+        * rewrite -HC0.
+          eapply IHproves; eauto; first lia.
+          apply bunch_decomp_correct. apply Hdec0.
     - (* impl R *)
       apply BI_Impl_R.
       assert ((fill C empty;, frml ϕ0) =

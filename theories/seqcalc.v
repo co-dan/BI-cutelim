@@ -87,6 +87,16 @@ Inductive proves : bunch → formula → Prop :=
 | BI_Conj_L Π ϕ ψ χ :
     (fill Π (frml ϕ ;, frml ψ) ⊢ᴮ χ) →
     fill Π (frml (CONJ ϕ ψ)) ⊢ᴮ χ
+| BI_Disj_R1 Δ ϕ ψ :
+    (Δ ⊢ᴮ ϕ) →
+    Δ ⊢ᴮ DISJ ϕ ψ
+| BI_Disj_R2 Δ ϕ ψ :
+    (Δ ⊢ᴮ ψ) →
+    Δ ⊢ᴮ DISJ ϕ ψ
+| BI_Disj_L Π ϕ ψ χ :
+    (fill Π (frml ϕ) ⊢ᴮ χ) →
+    (fill Π (frml ψ) ⊢ᴮ χ) →
+    fill Π (frml (DISJ ϕ ψ)) ⊢ᴮ χ
 | BI_Impl_R Δ ϕ ψ :
     (Δ ;, frml ϕ ⊢ᴮ ψ) →
     Δ  ⊢ᴮ IMPL ϕ ψ
@@ -165,6 +175,19 @@ Proof.
     all: by rewrite ?left_absorb ?right_absorb.
   - apply bi.True_intro.
   - by rewrite IHproves1 IHproves2.
+  - by apply bi.or_intro_l.
+  - by apply bi.or_intro_r.
+  - rewrite bunch_ctx_interp_decomp. simpl.
+    trans (bunch_ctx_interp PROP s Π (∃ (x : bool), if x then bunch_interp _ s (frml ϕ) else bunch_interp _ s (frml ψ))).
+    { apply bunch_ctx_interp_mono.
+      apply bi.or_elim.
+      - by eapply (bi.exist_intro' _ _ true).
+      - by eapply (bi.exist_intro' _ _ false). }
+    rewrite bunch_ctx_interp_exist.
+    apply bi.exist_elim.
+    intros [|];  rewrite <- bunch_ctx_interp_decomp.
+    + eapply IHproves1.
+    + eapply IHproves2.
   - by apply bi.impl_intro_r.
   - rewrite -IHproves2.
     apply bunch_interp_fill_mono; simpl.
