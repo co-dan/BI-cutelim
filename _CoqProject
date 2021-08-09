@@ -5,7 +5,6 @@
 iris-mod/bi/interface.v
 iris-mod/bi/derived_connectives.v
 iris-mod/bi/derived_laws.v
-# iris-mod/bi/derived_laws_later.v
 iris-mod/bi/bi.v
 
 theories/syntax.v
