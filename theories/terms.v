@@ -39,6 +39,8 @@ Equations linear_bterm `{!EqDecision V,!Countable V}
     term_fv T1 ## term_fv T2 ∧
     linear_bterm T1 ∧ linear_bterm T2;
 .
+
+(** ** Actions on bunches and and interpretation in BI algebras *)
 Fixpoint bterm_ctx_act `{!EqDecision V,!Countable V}
          (T : bterm V) (Δs : V → bunch) : bunch :=
   match T with
@@ -55,6 +57,8 @@ Fixpoint bterm_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
   | TSemic T1 T2 => bterm_alg_act T1 Xs ∧ bterm_alg_act T2 Xs
   end%I.
 
+(** * Properties *)
+
 Lemma bterm_fmap_compose {A B C} (f : A → B) (g : B → C) (T : bterm A) :
   (g ∘ f) <$> T = g <$> (f <$> T).
 Proof.
@@ -63,6 +67,7 @@ Proof.
   - rewrite IHT1 IHT2 //.
 Qed.
 
+(** Interpretation of bunched terms only depend on free variables *)
 Lemma bterm_ctx_act_fv `{!EqDecision V,!Countable V} (T : bterm V) Δs Γs :
   (∀ i : V, i ∈ term_fv T → Δs i = Γs i) →
   bterm_ctx_act T Δs = bterm_ctx_act T Γs.
@@ -84,6 +89,11 @@ Proof.
   all: by rewrite IHT1 IHT2.
 Qed.
 
+(** Interpretation of bunches is a homomorphism w.r.t. bunched terms:
+<<
+  ⟦ T(Δs) ⟧ = ⟦ T ⟧ (⟦ Δs ⟧)
+>>
+*)
 Lemma bterm_ctx_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
       (T : bterm V) (Δs : V → bunch) (s : atom → PROP) :
   bunch_interp _ s (bterm_ctx_act T Δs) =
@@ -95,6 +105,8 @@ Proof.
   - by rewrite IHT1 IHT2.
 Qed.
 
+(** Linear bunched terms can be viewed as _bunches with holes_, when
+restricted to one free variable. *)
 Lemma blinterm_ctx_act_insert `{!EqDecision V,!Countable V} (T : bterm V) Δs i :
   linear_bterm T →
   i ∈ term_fv T →

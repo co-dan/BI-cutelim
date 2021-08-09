@@ -151,27 +151,6 @@ Module PB.
     by eapply HH.
   Qed.
 
-  (* Trivial definition of the persistence modality *)
-  Definition PB_box (X : PB) : PB := MkPB (λ Δ, X empty).
-  Lemma box_mono P Q : (P ⊢ Q) → PB_box P ⊢ PB_box Q.
-  Proof. intros HH Δ. compute. eapply HH. Qed.
-  Lemma box_idemp_2 P : PB_box P ⊢ PB_box (PB_box P).
-  Proof. intros Δ. compute. done. Qed.
-  Lemma box_emp_2 : emp ⊢ PB_box emp.
-  Proof. intros Δ. compute. done. Qed.
-  Lemma box_absorbing P Q : (PB_box P) ∗ Q ⊢ PB_box P.
-  Proof.
-    intros Δ (Δ1 & Δ2 & H1 & H2 & ->).
-    compute.
-    by apply H1.
-  Qed.
-  Lemma box_sep_elim P Q : PB_box P ∧ Q ⊢ P ∗ Q.
-  Proof.
-    intros Δ [H1 H2]. compute in H1.
-    exists empty,Δ. repeat split; eauto; [].
-    by rewrite left_id.
-  Qed.
-
   Canonical Structure PB_O := discreteO PB.
 
   Global Instance entails_preorder : PreOrder PB_entails.
@@ -188,7 +167,6 @@ Module PB.
     - apply sep_comm'.
     - apply sep_assoc'.
     - apply wand_elim_l'.
-    (* - apply box_sep_elim. *)
   Qed.
 
   (* Degenerate ▷ *)
@@ -610,44 +588,6 @@ Module Cl.
   Proof. split; compute; naive_solver. Qed.
 
   Definition C_pure (ϕ : Prop) : C := cl' (PB_pure ϕ).
-
-  Program Definition C_box (X : C) : C := C_pure (PB_emp ⊢@{PB_alg} X).
-
-  Lemma box_mono P Q : (P ⊢ Q) → C_box P ⊢ C_box Q.
-  Proof.
-    intros HH. apply cl_mono.
-    intros Δ HP Δ' H1. by apply HH, HP.
-  Qed.
-  Lemma box_idemp_2 P : C_box P ⊢ C_box (C_box P).
-  Proof.
-    apply cl_mono. intros Δ.
-    intros HPB Δ' HΔ'. apply cl_unit. simpl.
-    apply HPB.
-  Qed.
-  Lemma box_emp_2 : emp ⊢ C_box emp.
-  Proof.
-    apply cl_mono. intros Δ; simpl.
-    intros _ Δ' HΔ'. by apply cl_unit.
-  Qed.
-  Lemma box_absorbing P Q : (C_box P) ∗ Q ⊢ C_box P.
-  Proof.
-    apply cl'_adj.
-    apply bi.wand_elim_l'.
-    apply (cl'_adj (PB_pure (PB_emp ⊢@{PB_alg} P)) (Q -∗ C_box P)).
-    apply bi.wand_intro_r.
-    intros Δ (Δ1 & Δ2 & H1 & H2 & ->).
-    apply cl_unit. apply H1.
-  Qed.
-  Lemma box_sep_elim P Q : C_box P ∧ Q ⊢ P ∗ Q.
-  Proof.
-    apply impl_elim_l'.
-    apply (cl_adj (PB_pure (PB_emp ⊢@{PB_alg} P)) (C_impl Q (cl' (PB_sep P Q)))).
-    intros Δ HP Δ' HQ. rewrite (comm _ Δ).
-    apply (C_weaken (C_sep P Q)).
-    apply cl_unit. exists empty,Δ'. rewrite left_id.
-    repeat split; eauto. apply HP.
-    simpl. reflexivity.
-  Qed.
 
   Lemma sep_comm' P Q : P ∗ Q ⊢ Q ∗ P.
   Proof. apply cl_mono. apply sep_comm'. Qed.
