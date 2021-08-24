@@ -26,3 +26,9 @@ See `seqcalc_s4.v`, `seqcalc_height_s4.v`, `interp_s4.v`, and `cutelim_s4.v` in 
 You will need a copy of Equations installed.
 You can compile the project with `make -jN` where `N` is the number of threads you want to use.
 Compile the HTML docs with `make html`.
+
+## Copyright
+
+The Coq formalization is distributed under the BSD-3 licence.
+The code in the `iris-mod` is adapted from
+the Iris project <https://iris-project.org>
