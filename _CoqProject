@@ -1,11 +1,10 @@
 -Q theories bunched
--Q iris-mod iris_mod
 -arg -w -arg -notation-overridden
 
-iris-mod/bi/interface.v
-iris-mod/bi/derived_connectives.v
-iris-mod/bi/derived_laws.v
-iris-mod/bi/bi.v
+theories/algebra/notation.v
+theories/algebra/interface.v
+theories/algebra/derived_laws.v
+theories/algebra/bi.v
 
 theories/syntax.v
 theories/terms.v

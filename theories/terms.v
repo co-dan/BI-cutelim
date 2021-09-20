@@ -1,9 +1,9 @@
 (* Bunched terms *)
 From Equations Require Import Equations.
 From Coq Require Import ssreflect.
-From stdpp Require Import prelude gmap fin_sets.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From bunched Require Import syntax interp.
+From stdpp Require Import prelude base gmap fin_sets functions.
 
 (** * Bunched terms *)
 Inductive bterm (var : Type) : Type :=
@@ -107,7 +107,7 @@ Qed.
 
 (** Linear bunched terms can be viewed as _bunches with holes_, when
 restricted to one free variable. *)
-Lemma blinterm_ctx_act_insert `{!EqDecision V,!Countable V} (T : bterm V) Δs i :
+Lemma blinterm_ctx_act_insert `{!EqDecision V, !Countable V} (T : bterm V) Δs i :
   linear_bterm T →
   i ∈ term_fv T →
   ∃ (Π : bunch_ctx), ∀ Γ , fill Π Γ = bterm_ctx_act T (<[i:=Γ]>Δs).

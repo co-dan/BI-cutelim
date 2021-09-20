@@ -1,6 +1,6 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From bunched Require Export syntax interp terms.
 
 Module Type SIMPLE_STRUCT_EXT.

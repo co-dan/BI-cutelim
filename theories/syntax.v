@@ -1,7 +1,7 @@
 (* Formulas, bunches *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 
 Declare Scope bunch_scope.
 Delimit Scope bunch_scope with B.

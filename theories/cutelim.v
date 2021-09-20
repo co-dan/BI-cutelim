@@ -1,7 +1,7 @@
 (* Semantic proof of cut elimination.. *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From Equations Require Import Equations.
 From bunched Require Import seqcalc seqcalc_height interp terms syntax.
 
@@ -151,16 +151,15 @@ Module PB.
     by eapply HH.
   Qed.
 
-  Canonical Structure PB_O := discreteO PB.
-
   Global Instance entails_preorder : PreOrder PB_entails.
   Proof. split; compute; naive_solver. Qed.
 
-  Lemma PB_bi_mixin : BiMixin (PROP:=PB_O)
+  Lemma PB_bi_mixin : BiMixin (PROP:=PB)
                               PB_entails PB_emp PB_pure PB_and PB_or
                               PB_impl PB_forall PB_exists PB_sep PB_wand.
   Proof.
     split; try by (compute; naive_solver).
+    - apply _.
     - apply _.
     - apply emp_sep_1.
     - apply emp_sep_2.
@@ -169,22 +168,9 @@ Module PB.
     - apply wand_elim_l'.
   Qed.
 
-  (* Degenerate ▷ *)
-  Definition PB_later (X : PB) : PB := PB_pure True.
-
-  Lemma PB_bi_later_mixin : BiLaterMixin (PROP:=PB_O)
-    PB_entails PB_pure PB_or PB_impl
-    PB_forall PB_exists PB_sep PB_later.
-  Proof.
-    split; try by (compute; naive_solver).
-    intros P Q; compute.
-    intros Δ. exists Δ, empty. repeat split; eauto.
-    by rewrite right_id.
-  Qed.
 
   Canonical Structure PB_alg : bi :=
-    {| bi_ofe_mixin := (ofe_mixin PB_O); bi_bi_mixin := PB_bi_mixin;
-       bi_bi_later_mixin := PB_bi_later_mixin |}.
+    {| bi_bi_mixin := PB_bi_mixin; |}.
 
 End PB.
 
@@ -582,8 +568,6 @@ Module Cl.
     rewrite PB.emp_sep_2. done.
   Qed.
 
-  Canonical Structure ClO := discreteO C.
-
   Global Instance c_entails_preorder : PreOrder C_entails.
   Proof. split; compute; naive_solver. Qed.
 
@@ -602,34 +586,31 @@ Module Cl.
     apply cl_unit. do 2 eexists; repeat split; eauto.
   Qed.
 
-  Lemma C_bi_mixin : BiMixin (PROP:=ClO)
+  Lemma C_bi_mixin : BiMixin (PROP:=C)
                               C_entails C_emp C_pure C_and C_or
                               C_impl C_forall C_exists C_sep C_wand.
   Proof.
     split.
+    - apply _.
     - apply _.
     - intros ??. split.
       { by intros ->. }
       intros [H1 H2]. split.
       + apply H1.
       + apply H2.
-    - intros n A1 A2 HA. compute.
+    - intros A1 A2 HA. compute.
       naive_solver.
-    - intros n [X1 ?] [X2 ?] HX [Y1 ?] [Y2 ?] HY.
+    - intros [X1 ?] [X2 ?] HX [Y1 ?] [Y2 ?] HY.
       intros Δ.
       specialize (HX Δ).
       specialize (HY Δ).
       simpl in *. compute; naive_solver.
-    - intros n X1 X2 HX%discrete_iff Y1 Y2 HY%discrete_iff; try apply _.
-      apply discrete_iff.
-      { apply _. }
+    - intros X1 X2 HX Y1 Y2 HY; try apply _.
       apply cl_proper. intros Δ.
       specialize (HX Δ).
       specialize (HY Δ).
       compute; naive_solver.
-    - intros n X1 X2 HX%discrete_iff Y1 Y2 HY%discrete_iff; try apply _.
-      apply discrete_iff.
-      { apply _. }
+    - intros X1 X2 HX Y1 Y2 HY; try apply _.
       intros Δ.
       split.
       + intros HX1 Δ2 HD2.
@@ -638,20 +619,16 @@ Module Cl.
       + intros HX1 Δ2 HD2.
         apply HY, HX1.
         by apply HX.
-    - intros A n P1 P2 HP. apply discrete_iff.
-      { apply _. }
+    - intros A P1 P2 HP.
       intros Δ. split.
       + intros H1 x. apply HP, H1.
       + intros H2 x. apply HP, H2.
-    - intros A n P1 P2 HP. apply discrete_iff.
-      { apply _. }
+    - intros A P1 P2 HP.
       apply cl_proper.
       intros Δ. split.
       + intros [x H1]. exists x. by apply HP.
       + intros [x H2]. exists x. by apply HP.
-    - intros n X1 X2 HX%discrete_iff Y1 Y2 HY%discrete_iff; try apply _.
-      apply discrete_iff.
-      { apply _. }
+    - intros X1 X2 HX Y1 Y2 HY; try apply _.
       apply cl_proper.
       intros Δ. split.
       + intros (D1 & D2 & H1 & H2 & ->).
@@ -662,9 +639,7 @@ Module Cl.
         do 2 eexists. repeat split; eauto.
         * by apply HX.
         * by apply HY.
-    - intros n X1 X2 HX%discrete_iff Y1 Y2 HY%discrete_iff; try apply _.
-      apply discrete_iff.
-      { apply _. }
+    - intros X1 X2 HX Y1 Y2 HY; try apply _.
       intros Δ. split.
       + intros HX1 Δ2 HD2.
         apply HY, HX1.
@@ -672,15 +647,6 @@ Module Cl.
       + intros HX1 Δ2 HD2.
         apply HY, HX1.
         by apply HX.
-    (* - intros n X1 X2 HX%discrete_iff; try apply _. *)
-    (*   apply discrete_iff. *)
-    (*   { apply _. } *)
-    (*   intros Δ. apply cl_proper. *)
-    (*   apply (@bi.pure_proper PB_alg). split. *)
-    (*   { intros H1 Δ' H2. apply HX. *)
-    (*     apply H1, H2. } *)
-    (*   { intros H1 Δ' H2. apply HX. *)
-    (*     apply H1, H2. } *)
     - intros ψ X Hψ Δ. simpl.
       intros HX ϕ Hs. apply Hs.
       done.
@@ -716,18 +682,8 @@ Module Cl.
 
 Definition C_later (X : C) : C := X.
 
-Lemma C_bi_later_mixin : BiLaterMixin (PROP:=ClO)
-  C_entails C_pure C_or C_impl
-  C_forall C_exists C_sep C_later.
-Proof.
-  eapply bi_later_mixin_id.
-  { simpl. done. }
-  apply C_bi_mixin.
-Qed.
-
 Canonical Structure C_alg : bi :=
-  {| bi_ofe_mixin := (ofe_mixin ClO); bi_bi_mixin := C_bi_mixin;
-     bi_bi_later_mixin := C_bi_later_mixin |}.
+  {| bi_bi_mixin := C_bi_mixin; |}.
 
 (** We now show that [cl] is an embedding from [C] to [PB] *)
 Lemma cl_sep (X Y : PB) :
@@ -882,8 +838,10 @@ Proof.
   revert Xs. induction T=>Xs /=.
   - intros Δ HXs. apply cl_unit.
     exists (λ (i : V),
-                if decide (i = x) then Δ
-                else frml BOT).
+            match decide (i = x) with
+            | left _ => Δ
+            | right _ => frml BOT
+            end).
     rewrite /= decide_True//.
     split; last done.
     intros i. case_decide; simplify_eq/=; auto.
@@ -904,8 +862,10 @@ Proof.
     destruct H2 as (Δs2 & HΔs2 & HDs2eq).
     apply cl_unit. simpl.
     pose (Δs := λ (x : V),
-                if decide (x ∈ term_fv T1) then Δs1 x
-                else Δs2 x).
+            match decide (x ∈ term_fv T1) with
+            | left _ => Δs1 x
+            | right _ => Δs2 x
+            end).
     exists Δs. split.
     + intros i. unfold Δs.
       case_decide; auto.
@@ -943,8 +903,10 @@ Proof.
     destruct HΔ1 as (Δs1 & HΔs1 & HDs1eq).
     destruct HΔ2 as (Δs2 & HΔs2 & HDs2eq).
     pose (Δs := λ (x : V),
-                if decide (x ∈ term_fv T1) then Δs1 x
-                else Δs2 x).
+            match decide (x ∈ term_fv T1) with
+            | left _ => Δs1 x
+            | right _ => Δs2 x
+            end).
     exists Δs. split.
     + intros i. unfold Δs.
       case_decide; auto.

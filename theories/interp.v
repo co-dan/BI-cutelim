@@ -1,5 +1,5 @@
 From Coq Require Import ssreflect.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From stdpp Require Import prelude.
 From bunched Require Import syntax.
 
@@ -51,7 +51,7 @@ Section interp.
   Definition seq_interp Δ ϕ : Prop :=
     (bunch_interp Δ ⊢ formula_interp ϕ).
 
-  Program Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
+  Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
     λ P, match F with
         | CtxCommaL Δ => P ∗ bunch_interp Δ
         | CtxCommaR Δ => bunch_interp Δ ∗ P
@@ -59,7 +59,7 @@ Section interp.
         | CtxSemicR Δ => bunch_interp Δ ∧ P
         end%I.
 
-  Program Definition bunch_ctx_interp Π : PROP → PROP :=
+  Definition bunch_ctx_interp Π : PROP → PROP :=
     λ P, foldl (flip bunch_ctx_item_interp) P Π.
 
   Lemma bunch_ctx_interp_cons F Π A :

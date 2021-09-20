@@ -1,10 +1,9 @@
-From iris.algebra Require Export ofe.
-From iris.bi Require Export notation.
-From iris.prelude Require Import options.
+From stdpp Require Export prelude.
+From bunched.algebra Require Export notation.
 Set Primitive Projections.
 
 Section bi_mixin.
-  Context {PROP : Type} `{Dist PROP, Equiv PROP}.
+  Context {PROP : Type} {bi_equiv : Equiv PROP}.
   Context (bi_entails : PROP → PROP → Prop).
   Context (bi_emp : PROP).
   Context (bi_pure : Prop → PROP).
@@ -45,19 +44,20 @@ Section bi_mixin.
 
   Record BiMixin := {
     bi_mixin_entails_po : PreOrder bi_entails;
+    bi_mixin_equiv_equivalence : Equivalence bi_equiv;
     bi_mixin_equiv_entails P Q : (P ≡ Q) ↔ (P ⊢ Q) ∧ (Q ⊢ P);
 
-    (** Non-expansiveness *)
-    bi_mixin_pure_ne n : Proper (iff ==> dist n) bi_pure;
-    bi_mixin_and_ne : NonExpansive2 bi_and;
-    bi_mixin_or_ne : NonExpansive2 bi_or;
-    bi_mixin_impl_ne : NonExpansive2 bi_impl;
-    bi_mixin_forall_ne A n :
-      Proper (pointwise_relation _ (dist n) ==> dist n) (bi_forall A);
-    bi_mixin_exist_ne A n :
-      Proper (pointwise_relation _ (dist n) ==> dist n) (bi_exist A);
-    bi_mixin_sep_ne : NonExpansive2 bi_sep;
-    bi_mixin_wand_ne : NonExpansive2 bi_wand;
+    (** Setoid stuff *)
+    bi_mixin_pure_ne  : Proper (iff ==> (≡)) bi_pure;
+    bi_mixin_and_ne : Proper ((≡) ==> (≡) ==> (≡)) bi_and;
+    bi_mixin_or_ne : Proper ((≡) ==> (≡) ==> (≡)) bi_or;
+    bi_mixin_impl_ne : Proper ((≡) ==> (≡) ==> (≡)) bi_impl;
+    bi_mixin_forall_ne A  :
+      Proper (pointwise_relation _ (≡) ==> (≡)) (bi_forall A);
+    bi_mixin_exist_ne A :
+      Proper (pointwise_relation _ (≡) ==> (≡)) (bi_exist A);
+    bi_mixin_sep_ne : Proper ((≡) ==> (≡) ==> (≡)) bi_sep;
+    bi_mixin_wand_ne : Proper ((≡) ==> (≡) ==> (≡)) bi_wand;
 
     (** Higher-order logic *)
     bi_mixin_pure_intro (φ : Prop) P : φ → P ⊢ ⌜ φ ⌝;
@@ -91,53 +91,10 @@ Section bi_mixin.
 
   }.
 
-  (** We equip any BI with a later modality. This avoids an additional layer in
-  the BI hierachy and improves performance significantly (see Iris issue #303).
-
-  For non step-indexed BIs the later modality can simply be defined as the
-  identity function, as the Löb axiom or contractiveness of later is not part of
-  [BiLaterMixin]. For step-indexed BIs one should separately prove an instance
-  of the class [BiLaterContractive PROP] or [BiLöb PROP]. (Note that there is an
-  instance [BiLaterContractive PROP → BiLöb PROP] in [derived_laws_later].)
-
-  For non step-indexed BIs one can get a "free" instance of [BiLaterMixin] using
-  the smart constructor [bi_later_mixin_id] below. *)
-  Context (bi_later : PROP → PROP).
-  Local Notation "▷ P" := (bi_later P) : bi_scope.
-
-  Record BiLaterMixin := {
-    bi_mixin_later_ne : NonExpansive bi_later;
-
-    bi_mixin_later_mono P Q : (P ⊢ Q) → ▷ P ⊢ ▷ Q;
-    bi_mixin_later_intro P : P ⊢ ▷ P;
-
-    bi_mixin_later_forall_2 {A} (Φ : A → PROP) : (∀ a, ▷ Φ a) ⊢ ▷ ∀ a, Φ a;
-    bi_mixin_later_exist_false {A} (Φ : A → PROP) :
-      (▷ ∃ a, Φ a) ⊢ ▷ False ∨ (∃ a, ▷ Φ a);
-    bi_mixin_later_sep_1 P Q : ▷ (P ∗ Q) ⊢ ▷ P ∗ ▷ Q;
-    bi_mixin_later_sep_2 P Q : ▷ P ∗ ▷ Q ⊢ ▷ (P ∗ Q);
-    bi_mixin_later_false_em P : ▷ P ⊢ ▷ False ∨ (▷ False → P);
-  }.
-
-  Lemma bi_later_mixin_id :
-    (∀ (P : PROP), (▷ P)%I = P) →
-    BiMixin → BiLaterMixin.
-  Proof.
-    intros Hlater Hbi. pose proof (bi_mixin_entails_po Hbi).
-    split; repeat intro; rewrite ?Hlater ?Hequiv //.
-    - apply (bi_mixin_forall_intro Hbi)=> a.
-      etrans; [apply (bi_mixin_forall_elim Hbi a)|]. by rewrite Hlater.
-    - etrans; [|apply (bi_mixin_or_intro_r Hbi)].
-      apply (bi_mixin_exist_elim Hbi)=> a.
-      etrans; [|apply (bi_mixin_exist_intro Hbi a)]. by rewrite /= Hlater.
-    - etrans; [|apply (bi_mixin_or_intro_r Hbi)].
-      apply (bi_mixin_impl_intro_r Hbi), (bi_mixin_and_elim_l Hbi).
-  Qed.
 End bi_mixin.
 
 Structure bi := Bi {
   bi_car :> Type;
-  bi_dist : Dist bi_car;
   bi_equiv : Equiv bi_car;
   bi_entails : bi_car → bi_car → Prop;
   bi_emp : bi_car;
@@ -149,20 +106,14 @@ Structure bi := Bi {
   bi_exist : ∀ A, (A → bi_car) → bi_car;
   bi_sep : bi_car → bi_car → bi_car;
   bi_wand : bi_car → bi_car → bi_car;
-  bi_later : bi_car → bi_car;
-  bi_ofe_mixin : OfeMixin bi_car;
-  bi_cofe : Cofe (Ofe bi_car bi_ofe_mixin);
   bi_bi_mixin : BiMixin bi_entails bi_emp bi_pure bi_and bi_or bi_impl bi_forall
                         bi_exist bi_sep bi_wand;
-  bi_bi_later_mixin : BiLaterMixin bi_entails bi_pure bi_or bi_impl
-                                   bi_forall bi_exist bi_sep bi_later;
 }.
 Bind Scope bi_scope with bi_car.
 
-Coercion bi_ofeO (PROP : bi) : ofe := Ofe PROP (bi_ofe_mixin PROP).
-Canonical Structure bi_ofeO.
-Global Instance bi_cofe' (PROP : bi) : Cofe PROP.
-Proof. apply bi_cofe. Qed.
+Global Instance bi_equiv' (PROP : bi) : Equiv PROP := bi_equiv PROP.
+Global Instance bi_equiv'_equivalence (PROP : bi) : Equivalence (≡@{PROP}).
+Proof. eapply bi_mixin_equiv_equivalence, bi_bi_mixin. Defined.
 
 Global Instance: Params (@bi_entails) 1 := {}.
 Global Instance: Params (@bi_emp) 1 := {}.
@@ -174,10 +125,8 @@ Global Instance: Params (@bi_forall) 2 := {}.
 Global Instance: Params (@bi_exist) 2 := {}.
 Global Instance: Params (@bi_sep) 1 := {}.
 Global Instance: Params (@bi_wand) 1 := {}.
-Global Instance: Params (@bi_later) 1  := {}.
 
 Global Arguments bi_car : simpl never.
-Global Arguments bi_dist : simpl never.
 Global Arguments bi_equiv : simpl never.
 Global Arguments bi_entails {PROP} _ _ : simpl never, rename.
 Global Arguments bi_emp {PROP} : simpl never, rename.
@@ -189,7 +138,6 @@ Global Arguments bi_forall {PROP _} _%I : simpl never, rename.
 Global Arguments bi_exist {PROP _} _%I : simpl never, rename.
 Global Arguments bi_sep {PROP} _ _ : simpl never, rename.
 Global Arguments bi_wand {PROP} _ _ : simpl never, rename.
-Global Arguments bi_later {PROP} _ : simpl never, rename.
 
 Global Hint Extern 0 (bi_entails _ _) => reflexivity : core.
 Global Instance bi_rewrite_relation (PROP : bi) : RewriteRelation (@bi_entails PROP) := {}.
@@ -227,7 +175,6 @@ Notation "∀ x .. y , P" :=
 Notation "∃ x .. y , P" :=
   (bi_exist (λ x, .. (bi_exist (λ y, P%I)) ..)) : bi_scope.
 
-Notation "▷ P" := (bi_later P) : bi_scope.
 
 Definition bi_emp_valid {PROP : bi} (P : PROP) : Prop := emp ⊢ P.
 
@@ -255,23 +202,23 @@ Lemma equiv_entails P Q : P ≡ Q ↔ (P ⊢ Q) ∧ (Q ⊢ P).
 Proof. eapply bi_mixin_equiv_entails, bi_bi_mixin. Qed.
 
 (* Non-expansiveness *)
-Global Instance pure_ne n : Proper (iff ==> dist n) (@bi_pure PROP).
+Global Instance pure_ne : Proper (iff ==> (≡)) (@bi_pure PROP).
 Proof. eapply bi_mixin_pure_ne, bi_bi_mixin. Qed.
-Global Instance and_ne : NonExpansive2 (@bi_and PROP).
+Global Instance and_ne : Proper ((≡) ==> (≡) ==> (≡)) (@bi_and PROP).
 Proof. eapply bi_mixin_and_ne, bi_bi_mixin. Qed.
-Global Instance or_ne : NonExpansive2 (@bi_or PROP).
+Global Instance or_ne : Proper ((≡) ==> (≡) ==> (≡)) (@bi_or PROP).
 Proof. eapply bi_mixin_or_ne, bi_bi_mixin. Qed.
-Global Instance impl_ne : NonExpansive2 (@bi_impl PROP).
+Global Instance impl_ne : Proper ((≡) ==> (≡) ==> (≡)) (@bi_impl PROP).
 Proof. eapply bi_mixin_impl_ne, bi_bi_mixin. Qed.
-Global Instance forall_ne A n :
-  Proper (pointwise_relation _ (dist n) ==> dist n) (@bi_forall PROP A).
+Global Instance forall_ne A :
+  Proper (pointwise_relation _ (≡) ==> (≡)) (@bi_forall PROP A).
 Proof. eapply bi_mixin_forall_ne, bi_bi_mixin. Qed.
-Global Instance exist_ne A n :
-  Proper (pointwise_relation _ (dist n) ==> dist n) (@bi_exist PROP A).
+Global Instance exist_ne A :
+  Proper (pointwise_relation _ ((≡)) ==> (≡)) (@bi_exist PROP A).
 Proof. eapply bi_mixin_exist_ne, bi_bi_mixin. Qed.
-Global Instance sep_ne : NonExpansive2 (@bi_sep PROP).
+Global Instance sep_ne : Proper ((≡) ==> (≡) ==> (≡)) (@bi_sep PROP).
 Proof. eapply bi_mixin_sep_ne, bi_bi_mixin. Qed.
-Global Instance wand_ne : NonExpansive2 (@bi_wand PROP).
+Global Instance wand_ne : Proper ((≡) ==> (≡) ==> (≡)) (@bi_wand PROP).
 Proof. eapply bi_mixin_wand_ne, bi_bi_mixin. Qed.
 
 (* Higher-order logic *)
@@ -325,26 +272,5 @@ Proof. eapply bi_mixin_wand_intro_r, bi_bi_mixin. Qed.
 Lemma wand_elim_l' P Q R : (P ⊢ Q -∗ R) → P ∗ Q ⊢ R.
 Proof. eapply bi_mixin_wand_elim_l', bi_bi_mixin. Qed.
 
-(* Later *)
-Global Instance later_ne : NonExpansive (@bi_later PROP).
-Proof. eapply bi_mixin_later_ne, bi_bi_later_mixin. Qed.
-
-Lemma later_mono P Q : (P ⊢ Q) → ▷ P ⊢ ▷ Q.
-Proof. eapply bi_mixin_later_mono, bi_bi_later_mixin. Qed.
-Lemma later_intro P : P ⊢ ▷ P.
-Proof. eapply bi_mixin_later_intro, bi_bi_later_mixin. Qed.
-
-Lemma later_forall_2 {A} (Φ : A → PROP) : (∀ a, ▷ Φ a) ⊢ ▷ ∀ a, Φ a.
-Proof. eapply bi_mixin_later_forall_2, bi_bi_later_mixin. Qed.
-Lemma later_exist_false {A} (Φ : A → PROP) :
-  (▷ ∃ a, Φ a) ⊢ ▷ False ∨ (∃ a, ▷ Φ a).
-Proof. eapply bi_mixin_later_exist_false, bi_bi_later_mixin. Qed.
-Lemma later_sep_1 P Q : ▷ (P ∗ Q) ⊢ ▷ P ∗ ▷ Q.
-Proof. eapply bi_mixin_later_sep_1, bi_bi_later_mixin. Qed.
-Lemma later_sep_2 P Q : ▷ P ∗ ▷ Q ⊢ ▷ (P ∗ Q).
-Proof. eapply bi_mixin_later_sep_2, bi_bi_later_mixin. Qed.
-
-Lemma later_false_em P : ▷ P ⊢ ▷ False ∨ (▷ False → P).
-Proof. eapply bi_mixin_later_false_em, bi_bi_later_mixin. Qed.
 End bi_laws.
 End bi.

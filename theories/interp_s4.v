@@ -1,6 +1,6 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From bunched Require Import seqcalc_s4.
 
 (** * Interpretation of the sequent calculus in an arbitrary BI. *)
@@ -64,24 +64,28 @@ Section interp.
   Definition seq_interp Δ ϕ : Prop :=
     (bunch_interp Δ ⊢ formula_interp ϕ).
 
-  Program Definition bunch_ctx_item_interp (C : bunch_ctx_item) : PROP -n> PROP :=
-    λne P, match C with
-           | CtxCommaL Δ => P ∗ bunch_interp Δ
-           | CtxCommaR Δ => bunch_interp Δ ∗ P
-           | CtxSemicL Δ => P ∧ bunch_interp Δ
-           | CtxSemicR Δ => bunch_interp Δ ∧ P
-           end%I.
-  Next Obligation. intros C. destruct C; solve_proper. Qed.
+  Definition bunch_ctx_item_interp (C : bunch_ctx_item) : PROP → PROP :=
+    λ P, match C with
+         | CtxCommaL Δ => P ∗ bunch_interp Δ
+         | CtxCommaR Δ => bunch_interp Δ ∗ P
+         | CtxSemicL Δ => P ∧ bunch_interp Δ
+         | CtxSemicR Δ => bunch_interp Δ ∧ P
+         end%I.
 
-  Program Definition bunch_ctx_interp Π : PROP -n> PROP :=
-    λne P, foldl (flip bunch_ctx_item_interp) P Π.
-  Next Obligation.
-    intros Π. induction Π.
-    - apply _.
-    - intros n P P' HP.
-      cbn[foldl].
+  Definition bunch_ctx_interp Π : PROP → PROP :=
+    λ P, foldl (flip bunch_ctx_item_interp) P Π.
+
+  Lemma bunch_ctx_interp_cons F Π A :
+    bunch_ctx_interp (F::Π) A = bunch_ctx_interp Π (bunch_ctx_item_interp F A).
+  Proof. reflexivity. Qed.
+
+  Global Instance bunch_ctx_interp_proper Π : Proper ((≡) ==> (≡)) (bunch_ctx_interp Π).
+  Proof.
+    induction Π as [|F Π]=>X Y HXY.
+    - simpl; auto.
+    - simpl.
       eapply IHΠ.
-      cbn[flip]. by eapply bunch_ctx_item_interp.
+      destruct F; solve_proper.
   Qed.
 
   Lemma bunch_ctx_interp_decomp Π Δ :

@@ -1,7 +1,7 @@
 (* Semantic proof of cut elimination.. *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
-From iris_mod.bi Require Import bi.
+From bunched.algebra Require Import bi.
 From bunched Require Import seqcalc_s4 seqcalc_height_s4 interp_s4.
 
 (** The first algebra that we consider is a purely "combinatorial" one:
