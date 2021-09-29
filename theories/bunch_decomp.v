@@ -1,7 +1,6 @@
 (** Inductive representation for decomposition of bunches, and associated properties *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap functions.
-From Equations Require Import Equations.
 From bunched Require Export syntax terms.
 
 (** * Alternative representation of decomposition of bunches *)
@@ -149,9 +148,9 @@ Proof.
   revert Π. induction T=>Π Hlin.
   - simpl.
     intros Hx. exists x, Π. repeat split; auto.
-    { simp term_fv. set_solver. }
+    { set_solver. }
     intros Γ. by rewrite fn_lookup_insert.
-  - simpl. simp linear_bterm in Hlin.
+  - simpl. simpl in Hlin.
     destruct Hlin as (Ht12 & Hlin1 & Hlin2).
     intros Ht. symmetry in Ht.
     apply bunch_decomp_complete in Ht.
@@ -159,7 +158,7 @@ Proof.
     + apply bunch_decomp_correct in H3.
       specialize (IHT1 _ Hlin1 H3) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
-      { simp term_fv. set_solver. }
+      { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
       * apply HH.
       * assert (j ∉ term_fv T2).
@@ -171,7 +170,7 @@ Proof.
     + apply bunch_decomp_correct in H3.
       specialize (IHT2 _ Hlin2 H3) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
-      { simp term_fv. set_solver. }
+      { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
       * assert (j ∉ term_fv T1).
         { set_solver. }
@@ -180,7 +179,7 @@ Proof.
         { naive_solver. }
         rewrite fn_lookup_insert_ne//.
       * apply HH.
-  - simpl. simp linear_bterm in Hlin.
+  - simpl. simpl in Hlin.
     destruct Hlin as (Ht12 & Hlin1 & Hlin2).
     intros Ht. symmetry in Ht.
     apply bunch_decomp_complete in Ht.
@@ -188,7 +187,7 @@ Proof.
     + apply bunch_decomp_correct in H3.
       specialize (IHT1 _ Hlin1 H3) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
-      { simp term_fv. set_solver. }
+      { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
       * apply HH.
       * assert (j ∉ term_fv T2).
@@ -200,7 +199,7 @@ Proof.
     + apply bunch_decomp_correct in H3.
       specialize (IHT2 _ Hlin2 H3) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
-      { simp term_fv. set_solver. }
+      { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
       * assert (j ∉ term_fv T1).
         { set_solver. }

@@ -1,5 +1,4 @@
 (* Bunched terms *)
-From Equations Require Import Equations.
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
 From bunched Require Import syntax interp.
@@ -23,22 +22,22 @@ Global Instance bterm_fmap : FMap bterm :=
   | TSemic T1 T2 => TSemic (f <$> T1) (f <$> T2)
   end.
 
-Equations term_fv `{!EqDecision V,!Countable V} (T : bterm V) : gset V :=
-  term_fv (Var x) := {[ x ]};
-  term_fv (TComma T1 T2) := term_fv T1 ∪ term_fv T2;
-  term_fv (TSemic T1 T2) := term_fv T1 ∪ term_fv T2;
-.
+Fixpoint term_fv `{!EqDecision V,!Countable V} (T : bterm V) : gset V :=
+  match T with
+  | Var x => {[ x ]}
+  | TComma T1 T2 => term_fv T1 ∪ term_fv T2
+  | TSemic T1 T2 => term_fv T1 ∪ term_fv T2
+  end.
 
-Equations linear_bterm `{!EqDecision V,!Countable V}
+Fixpoint linear_bterm `{!EqDecision V,!Countable V}
   (T : bterm V) : Prop :=
-  linear_bterm (Var x) := True;
-  linear_bterm (TComma T1 T2) :=
+  match T with
+  | Var x => True
+  | TComma T1 T2
+  | TSemic T1 T2 =>
     term_fv T1 ## term_fv T2 ∧
-    linear_bterm T1 ∧ linear_bterm T2;
-  linear_bterm (TSemic T1 T2) :=
-    term_fv T1 ## term_fv T2 ∧
-    linear_bterm T1 ∧ linear_bterm T2;
-.
+    linear_bterm T1 ∧ linear_bterm T2
+  end.
 
 (** ** Actions on bunches and and interpretation in BI algebras *)
 Fixpoint bterm_ctx_act `{!EqDecision V,!Countable V}
@@ -72,7 +71,7 @@ Lemma bterm_ctx_act_fv `{!EqDecision V,!Countable V} (T : bterm V) Δs Γs :
   (∀ i : V, i ∈ term_fv T → Δs i = Γs i) →
   bterm_ctx_act T Δs = bterm_ctx_act T Γs.
 Proof.
-  induction T; simp term_fv ; simpl.
+  induction T; simpl.
   - set_solver.
   - set_unfold. intros H.
     rewrite IHT1; eauto. rewrite IHT2; eauto.
@@ -112,7 +111,7 @@ Lemma blinterm_ctx_act_insert `{!EqDecision V, !Countable V} (T : bterm V) Δs i
   i ∈ term_fv T →
   ∃ (Π : bunch_ctx), ∀ Γ , fill Π Γ = bterm_ctx_act T (<[i:=Γ]>Δs).
 Proof.
-  revert i. induction T=>i; simp linear_bterm term_fv ; simpl ; intros Hlin Hi.
+  revert i. induction T=>i; simpl ; intros Hlin Hi.
   - exists []. intros Γ. assert ( i = x) as -> by set_solver.
     by rewrite functions.fn_lookup_insert.
   - destruct Hlin as (Hdisj & Hlin1 & Hlin2).

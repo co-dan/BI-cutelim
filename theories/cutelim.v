@@ -2,7 +2,6 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap.
 From bunched.algebra Require Import bi.
-From Equations Require Import Equations.
 From bunched Require Import seqcalc seqcalc_height interp terms syntax.
 
 (** * Parameters to the proof: a list of simple structural extensions *)
@@ -846,7 +845,7 @@ Proof.
     split; last done.
     intros i. case_decide; simplify_eq/=; auto.
     apply C_inhabited.
-  - simp linear_bterm in TL.
+  - simpl in TL.
     destruct TL as (Hfv & HL1 & HL2).
     rewrite IHT1 //. rewrite IHT2 //.
     apply cl_adj. { apply _. }
@@ -880,7 +879,7 @@ Proof.
         revert Hfv Hi. set_unfold.
         naive_solver. }
       by f_equiv.
-  - simp linear_bterm in TL.
+  - simpl in TL.
     destruct TL as (Hfv & HL1 & HL2).
     rewrite IHT1 //. rewrite IHT2 //.
     intros Δ [H1 H2] ϕ Hϕ.
