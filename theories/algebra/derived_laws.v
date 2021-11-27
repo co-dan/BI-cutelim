@@ -523,6 +523,19 @@ Proof.
   - by apply exist_elim, pure_intro.
 Qed.
 
+
+(* TODO: upstream? *)
+Lemma impl_alt_eq P Q :
+  (P → Q)%I ≡ (∃ (R : PROP), ⌜R ∧ P ⊢ Q⌝ ∧ R)%I.
+Proof.
+  apply equiv_entails ; split.
+  - apply (exist_intro' _ _ (P → Q)%I).
+    apply and_intro; last done.
+    apply pure_intro. apply impl_elim_l.
+  - apply exist_elim=>R. apply pure_elim_l=>HR.
+    by apply impl_intro_r.
+Qed.
+
 End derived.
 
 End bi.

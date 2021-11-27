@@ -30,14 +30,6 @@ Section FromClosure.
     intros X i1 i2 HD. by setoid_rewrite HD.
   Qed.
 
-  (** The interior operation *)
-  Program Definition int (X : PB) : PB :=
-    cl (@MkPB (λ m, ∃ (i : Basis),
-               (basis i ⊢@{PB_alg} (X : PB)) ∧ basis i m) _).
-  Next Obligation.
-    intros X i1 i2 HD. by setoid_rewrite HD.
-  Qed.
-
   Lemma cl_unit X : X ⊢ cl (X : PB_alg).
   Proof.
     intros x Hx. simpl. intros i Hi.
@@ -115,6 +107,12 @@ Section FromClosure.
   Program Definition cl' (X : PB) : C :=
     {| CPred := cl X |}.
 
+
+    (** The interior operation *)
+  Definition PB_int (X : PB) : PB :=
+    (∃ (Z : C), ⌜(Z : PB) ⊢@{PB_alg} X⌝ ∧ (Z: PB))%I.
+
+  Definition int (X : PB) : PB := cl (PB_int X).
   Program Definition int' (X : PB) : C :=
     {| CPred := int X |}.
 
@@ -184,7 +182,7 @@ Section FromClosure.
     apply H1.
   Qed.
 
-  (* Alternative descriptions of the closure operator, internally in
+  (** Alternative descriptions of the closure operator, internally in
   the language of the BI algebra *)
   Lemma cl_alt_eq (X : PB) :
     (cl X : PB) ≡
@@ -451,7 +449,37 @@ Section FromClosure.
 
   Lemma impl_from_int (X Y : C) :
     (X → Y) ≡ int' (PB_impl M (X : PB) (Y : PB)).
-  Proof. Admitted.
+  Proof.
+    rewrite bi.impl_alt_eq.
+    change (int' (PB_impl _ (X : PB) (Y : PB))) with (cl' (PB_int (PB_impl _ (X : PB) (Y : PB)))).
+    apply bi.equiv_entails. split.
+    - apply cl_adj; first apply _.
+      apply bi.exist_elim=>R.
+      apply is_heyting_impl.
+      apply cl_adj; first apply _.
+      apply bi.pure_elim'=>HR.
+      assert ((C_pure True : PB) ≡ (True : PB)%I) as Htrue.
+      { apply bi.equiv_entails; split.
+        - apply bi.True_intro.
+        - apply (cl_unit _). }
+      rewrite -Htrue.
+      apply is_heyting_impl.
+      rewrite Htrue.
+      etrans; last apply (cl_unit _).
+      unfold PB_int.
+      apply (bi.exist_intro' _ _ R).
+      apply bi.and_mono_l. apply bi.pure_intro.
+      by apply bi.impl_intro_r.
+    - apply cl_adj; first apply _.
+      unfold PB_int.
+      apply bi.exist_elim=>R.
+      etrans; last apply cl_unit.
+      apply (bi.exist_intro' _ _ R).
+      apply bi.and_mono_l. apply bi.pure_elim'=>HR.
+      etrans; last apply cl_unit.
+      apply bi.pure_intro.
+      by apply bi.impl_elim_l' in HR.
+  Qed.
 
   Lemma cl_sep (X Y : PB) :
     cl' (PB_sep M o X Y) ≡ C_sep (cl' X) (cl' Y).
@@ -476,4 +504,4 @@ Section FromClosure.
 End FromClosure.
 
 Arguments Is_closed {M} {o} {_} {_} {_} {_} basis X.
-Arguments cl_unit {_} {_} {_} {_} {_} {_} basis X. 
+Arguments cl_unit {_} {_} {_} {_} {_} {_} basis X.
