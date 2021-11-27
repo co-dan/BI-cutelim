@@ -1,11 +1,12 @@
 -Q theories bunched
--arg -w -arg -notation-overridden
+-arg "-w" -arg "-notation-overridden"
 
 theories/algebra/notation.v
 theories/algebra/interface.v
 theories/algebra/derived_laws.v
 theories/algebra/bi.v
-
+theories/algebra/from_monoid.v
+theories/algebra/from_closure.v
 theories/syntax.v
 theories/terms.v
 theories/bunch_decomp.v

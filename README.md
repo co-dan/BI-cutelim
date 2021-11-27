@@ -1,4 +1,5 @@
 A semantic cut admissibility proof for the logic of Bunched Implications and extensions.
+See the [preprint](https://groupoid.moe/pdf/cutelim.pdf).
 
 ## Intro
 

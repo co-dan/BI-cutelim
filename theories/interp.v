@@ -153,3 +153,7 @@ Section interp.
   Qed.
 
 End interp.
+
+Arguments formula_interp {_} _ _.
+Arguments bunch_interp {_} _ _.
+Arguments seq_interp {_} _ _ _.

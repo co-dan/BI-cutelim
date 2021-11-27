@@ -1,13 +1,14 @@
+(** Sequent calculus for BI, parameterized by a set of simple structural rules. *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
 From bunched.algebra Require Import bi.
 From bunched Require Export syntax interp terms.
 
 Module Type SIMPLE_STRUCT_EXT.
-(** A _simple structural rule_ is a rule of the form 
+(** A _simple structural rule_ is a rule of the form
 
 <<
-      Π(T₁[Δs]) ⊢ ϕ    ...    Π(Tₙ[Δs]) ⊢ ϕ
+      Π(T₁[Δs]) ⊢ ϕ    ...    Π(T[Δs]) ⊢ ϕ
      -----------------------------------------
                   Π(T[Δs]) ⊢ ϕ
 >>
@@ -17,7 +18,7 @@ Module Type SIMPLE_STRUCT_EXT.
      is _linear_: no varriable occurs more than once.
 
      We formalize a set of such rules as lists of tuples :
-        <<([T₁; ..; Tₙ], T)>>.
+        <<([T₁; ..; T], T)>>.
 *)
 
   Parameter rules : list (list (bterm nat) * bterm nat).
@@ -26,13 +27,7 @@ Module Type SIMPLE_STRUCT_EXT.
 
 End SIMPLE_STRUCT_EXT.
 
-(* When the set of rules is valid in the algebra *)
-Definition rule_valid (PROP : bi) (Ts : list (bterm nat)) (T : bterm nat) :=
-  ∀ (Xs : nat → PROP),
-    bterm_alg_act T Xs ⊢
-       ∃ Ti' : {Ti : bterm nat | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
-
-(** * Sequent calculus  *)
+(** * Sequent calculus *)
 Reserved Notation "P ⊢ᴮ Q" (at level 99, Q at level 200, right associativity).
 
 (** ... parameterized over an arbitrary collection of simple structural rules. *)
@@ -40,7 +35,7 @@ Module Seqcalc (R : SIMPLE_STRUCT_EXT).
 Import R.
 
 Inductive proves : bunch → formula → Prop :=
-(** structural rules *)
+(** Structural rules: *)
 | BI_Axiom (a : atom) : frml (ATOM a) ⊢ᴮ ATOM a
 | BI_Equiv Δ Δ' ϕ :
     (Δ ≡ Δ') → (Δ ⊢ᴮ ϕ) →
@@ -54,7 +49,7 @@ Inductive proves : bunch → formula → Prop :=
   (Ts, T) ∈ rules →
   (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ ϕ) →
   fill Π (bterm_ctx_act T Δs) ⊢ᴮ ϕ
-(** multiplicatives *)
+(** Multiplicatives: *)
 | BI_Emp_R :
     empty ⊢ᴮ EMP
 | BI_Emp_L Π ϕ :
@@ -74,7 +69,7 @@ Inductive proves : bunch → formula → Prop :=
     (Δ ⊢ᴮ ϕ) →
     (fill Π (frml ψ) ⊢ᴮ χ) →
     fill Π (Δ ,, frml (WAND ϕ ψ)) ⊢ᴮ χ
-(** additives *)
+(** Additives: *)
 | BI_False_L Π ϕ :
     fill Π (frml BOT) ⊢ᴮ ϕ
 | BI_True_R Δ :
@@ -111,7 +106,6 @@ where "Δ ⊢ᴮ ϕ" := (proves Δ%B ϕ%B).
 (** * Properties *)
 
 (** Registering the right typeclasses for rewriting purposes. *)
-
 Global Instance proves_proper : Proper ((≡) ==> (=) ==> (≡)) proves.
 Proof.
   intros D1 D2 HD ϕ ? <-.
@@ -120,6 +114,24 @@ Proof.
   - eapply BI_Equiv; [ symmetry | ]; eauto.
 Qed.
 
+(** Identity expansion *)
+Lemma seqcalc_id_ext ϕ : frml ϕ ⊢ᴮ ϕ.
+Proof.
+  induction ϕ.
+  - by econstructor.
+  - eapply (BI_Emp_L []). by econstructor.
+  - by eapply (BI_False_L []).
+  - by econstructor.
+  - eapply (BI_Conj_L []). eapply (BI_Conj_R); by econstructor.
+  - eapply (BI_Disj_L []).
+    + by econstructor; eapply IHϕ1.
+    + by econstructor; eapply IHϕ2.
+  - eapply (BI_Sep_L []). eapply (BI_Sep_R); by econstructor.
+  - eapply BI_Impl_R. rewrite comm. eapply (BI_Impl_L []); eauto.
+  - eapply BI_Wand_R. rewrite comm. eapply (BI_Wand_L []); eauto.
+Qed.
+
+(** "Collapsing" a bunch *)
 Lemma collapse_l (Π : bunch_ctx) (Δ : bunch) (ϕ : formula) :
     (fill Π Δ ⊢ᴮ ϕ) → fill Π (frml (collapse Δ)) ⊢ᴮ ϕ.
 Proof.
@@ -140,10 +152,19 @@ Proof.
     apply HX.
 Qed.
 
+(** * Interpretation *)
+(** Associated with the set of rules:
+     when is the set of rules is valid in an algebra? *)
+Definition rule_valid (PROP : bi) (Ts : list (bterm nat)) (T : bterm nat) :=
+  ∀ (Xs : nat → PROP),
+    bterm_alg_act T Xs ⊢
+       ∃ Ti' : {Ti : bterm nat | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
+
+(** Sequent calculus is sound w.r.t. the BI algebras. *)
 Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :
   (∀ Ts T, (Ts, T) ∈ rules → rule_valid PROP Ts T) →
   (Δ ⊢ᴮ ϕ) →
-  seq_interp PROP s Δ ϕ.
+  seq_interp s Δ ϕ.
 Proof.
   intros Hrules.
   induction 1; unfold seq_interp; simpl; eauto; try rewrite -IHproves.
@@ -155,7 +176,7 @@ Proof.
     apply bi.and_intro; eauto.
   - assert (rule_valid PROP Ts T) as HH.
     { eapply Hrules; auto. }
-    specialize (HH (bunch_interp _ s ∘ Δs)).
+    specialize (HH (bunch_interp s ∘ Δs)).
     rewrite bunch_ctx_interp_decomp.
     rewrite bterm_ctx_alg_act.
     rewrite HH.
@@ -180,7 +201,7 @@ Proof.
   - by apply bi.or_intro_l.
   - by apply bi.or_intro_r.
   - rewrite bunch_ctx_interp_decomp. simpl.
-    trans (bunch_ctx_interp PROP s Π (∃ (x : bool), if x then bunch_interp _ s (frml ϕ) else bunch_interp _ s (frml ψ))).
+    trans (bunch_ctx_interp PROP s Π (∃ (x : bool), if x then bunch_interp s (frml ϕ) else bunch_interp s (frml ψ))).
     { apply bunch_ctx_interp_mono.
       apply bi.or_elim.
       - by eapply (bi.exist_intro' _ _ true).
@@ -195,5 +216,6 @@ Proof.
     apply bunch_interp_fill_mono; simpl.
     rewrite IHproves1. apply bi.impl_elim_r.
 Qed.
+
 
 End Seqcalc.

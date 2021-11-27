@@ -95,8 +95,8 @@ Qed.
 *)
 Lemma bterm_ctx_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
       (T : bterm V) (Δs : V → bunch) (s : atom → PROP) :
-  bunch_interp _ s (bterm_ctx_act T Δs) =
-  bterm_alg_act T (bunch_interp _ s ∘ Δs).
+  bunch_interp s (bterm_ctx_act T Δs) =
+  bterm_alg_act T (bunch_interp s ∘ Δs).
 Proof.
   induction T; simpl.
   - reflexivity.
