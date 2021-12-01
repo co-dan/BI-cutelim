@@ -1,3 +1,4 @@
+(** BI + □ *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
 From bunched.algebra Require Import bi.
@@ -5,7 +6,7 @@ From bunched.algebra Require Import bi.
 Declare Scope bunch_scope.
 Delimit Scope bunch_scope with B.
 
-(** * Syntax and sequence calculus for BI *)
+(** * Syntax and sequence calculus for BI□ *)
 
 Definition atom := nat.
 

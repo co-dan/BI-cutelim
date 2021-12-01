@@ -206,9 +206,7 @@ Proof.
     by apply (HXY _).
 Qed.
 
-Program Definition C_impl (X Y : C) := {| CPred := PB_impl' X Y |}.
-
-Lemma is_heyting_impl (X Y Z : C) :
+Lemma has_heyting_impl (X Y Z : C) :
   ((X : PB) ⊢@{PB_alg} (PB_impl' Y Z : PB)) ↔
       ((X : PB) ∧ (Y : PB) ⊢@{PB_alg} (Z : PB))%I.
 Proof.
@@ -223,6 +221,8 @@ Proof.
     eexists _,_. split; eauto.
 Qed.
 
+Program Definition C_impl (X Y : C) := {| CPred := PB_impl' X Y |}.
+
 Program Definition C_alg : bi :=
   C_alg bunch comma formula Fint C_impl _ _ _ .
 Next Obligation.
@@ -232,7 +232,7 @@ Next Obligation.
   - intros Δ. simpl. intros H1 Δ' HX'.
     apply HY. apply H1. apply HX. apply HX'.
 Qed.
-Next Obligation. apply is_heyting_impl. Qed.
+Next Obligation. apply has_heyting_impl. Qed.
 
 (** * Interpretation in [C] and Okada's lemma *)
 Definition C_atom (a : atom) := Fint' (ATOM a).
@@ -240,7 +240,7 @@ Definition C_atom (a : atom) := Fint' (ATOM a).
 Definition inner_interp : formula → C := @formula_interp C_alg C_atom.
 
 (** We verify the Okada's property *)
-Lemma okada (A : formula) :
+Lemma okada_property (A : formula) :
   (frml A ∈ inner_interp A)
    ∧ (inner_interp A ⊢@{C_alg} Fint' A).
 Proof.
@@ -454,6 +454,19 @@ Proof.
       by f_equiv.
 Qed.
 
+Lemma blinterm_C_desc' `{!EqDecision V, !Countable V}
+      (T : bterm V) (TL : linear_bterm T)
+      (Xs : V → C_alg) :
+  bterm_alg_act (PROP:=C_alg) T Xs ≡ C_blinterm_interp T Xs.
+Proof.
+  apply bi.equiv_entails. split.
+  - by apply blinterm_C_desc.
+  - apply cl_adj; first apply _.
+    intros Δ. simpl.
+    destruct 1 as [Δs [Hd ->]].
+    by apply bterm_C_refl.
+Qed.
+
 (** All the simple structural rules are valid in [C] *)
 Lemma C_extensions (Ts : list (bterm nat)) (T : bterm nat) :
     (Ts, T) ∈ M.rules → rule_valid C_alg Ts T.
@@ -493,11 +506,11 @@ Proof.
     (bunch_interp C_atom (fill Γ (frml ψ)) ⊢@{C_alg} formula_interp C_atom ϕ) in H2.
   cut (@seq_interp C_alg C_atom (fill Γ Δ) ϕ).
   { simpl. intros H3.
-    destruct (okada ϕ) as [Hϕ1 Hϕ2].
+    destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
     apply (Hϕ2 _). unfold inner_interp.
     apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
     apply (bunch_interp_collapse C_alg C_atom).
-    apply okada. }
+    apply okada_property. }
   simpl. rewrite -H2.
   apply bunch_interp_fill_mono, H1.
 Qed.

@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
 From bunched.algebra Require Import bi.
-From bunched Require Import seqcalc_s4 seqcalc_height_s4 interp_s4.
+From bunched Require Import seqcalc_height_s4 seqcalc_s4 interp_s4.
 
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
@@ -284,7 +284,7 @@ Module Cl.
   Proof.
     destruct X as [X Xcl]. simpl.
     intros HX. rewrite Xcl.
-    intros ϕ Hϕ. eapply (Inversion.Box_L []).
+    intros ϕ Hϕ. eapply (box_l_inv []).
     by apply Hϕ.
   Qed.
 
@@ -334,7 +334,7 @@ Module Cl.
   Proof.
     destruct X as [X Xcl]. simpl.
     rewrite !Xcl. intros HX ϕ Hϕ.
-    simpl in HX. apply Inversion.Collapse_L.
+    simpl in HX. apply collapse_l_inv.
     by apply HX.
   Qed.
 
@@ -416,8 +416,8 @@ Module Cl.
       destruct Y as [Y Yc]. simpl.
       rewrite Yc. intros ψ Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
-      apply Inversion.Impl_R in H.
-      by apply (Inversion.Collapse_L [CtxSemicR Δ]).
+      apply impl_r_inv in H.
+      by apply (collapse_l_inv [CtxSemicR Δ]).
   Qed.
 
   Definition C_emp : C := cl' PB_emp.
@@ -447,8 +447,8 @@ Module Cl.
       destruct Y as [Y Yc]. simpl.
       rewrite Yc. intros ψ Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
-      apply Inversion.Wand_R in H.
-      by apply (Inversion.Collapse_L [CtxCommaR Δ]).
+      apply wand_r_inv in H.
+      by apply (collapse_l_inv [CtxCommaR Δ]).
   Qed.
 
   Program Definition PB_box (X: PB) : PB :=
@@ -605,8 +605,8 @@ Module Cl.
     intros Δ.
     destruct 1 as (Δ' & HD & HX).
     simpl. intros D1 H1 f Hf. rewrite HD.
-    rewrite comm. apply (Inversion.Collapse_L [CtxSemicR D1]). simpl.
-    apply Inversion.Impl_R. apply H1.
+    rewrite comm. apply (collapse_l_inv [CtxSemicR D1]). simpl.
+    apply impl_r_inv. apply H1.
     intros D2. destruct 1 as (D2' & HD2 & HY). simpl.
     apply BI_Impl_R.
     apply (C_collapse (Fint' f) [CtxSemicR D2]). simpl.
@@ -721,15 +721,6 @@ Module Cl.
       + intros HX1 Δ2 HD2.
         apply HY, HX1.
         by apply HX.
-    (* - intros X1 X2 HX; try apply _. *)
-    (*   apply discrete_iff. *)
-    (*   { apply _. } *)
-    (*   intros Δ. apply cl_proper. *)
-    (*   apply (@bi.pure_proper PB_alg). split. *)
-    (*   { intros H1 Δ' H2. apply HX. *)
-    (*     apply H1, H2. } *)
-    (*   { intros H1 Δ' H2. apply HX. *)
-    (*     apply H1, H2. } *)
     - intros ψ X Hψ Δ. simpl.
       intros HX ϕ Hs. apply Hs.
       done.
@@ -783,7 +774,7 @@ Definition C_atom (a : atom) := Fint' (ATOM a).
 Definition inner_interp : formula → C
   := formula_interp C_alg C_box C_atom.
 
-Lemma pas_de_deux (A : formula) :
+Lemma okada_property (A : formula) :
   ((inner_interp A) (frml A)) ∧ (inner_interp A ⊢@{C_alg} Fint' A).
 Proof.
   induction A; simpl.
@@ -887,15 +878,15 @@ Proof.
   simpl in H1, H2.
   cut (seq_interp C_alg C_box C_atom (fill Γ Δ) ϕ).
   { simpl. intros H3.
-    destruct (pas_de_deux ϕ) as [Hϕ1 Hϕ2].
+    destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
     apply Hϕ2. unfold inner_interp.
     apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
     cut (formula_interp C_alg C_box C_atom (collapse (fill Γ Δ)) (frml (collapse (fill Γ Δ)))).
     { apply (bunch_interp_collapse C_alg C_box C_atom). }
-    apply pas_de_deux. }
+    apply okada_property. }
   simpl. rewrite -H2.
   apply bunch_interp_fill_mono, H1.
 Qed.
 
-Print Assumptions cut.
+(* Print Assumptions cut. *)
 (*  ==> Closed under the global context *)

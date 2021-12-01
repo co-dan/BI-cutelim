@@ -11,7 +11,7 @@ From bunched Require Import seqcalc_s4.
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).
 
-Module bunchHeight.
+Section SeqcalcHeight.
 
   Implicit Type Δ : bunch.
   Implicit Type ψ ϕ : formula.
@@ -32,15 +32,6 @@ Module bunchHeight.
   where "Δ =? Γ" := (bunch_equiv Δ%B Γ%B).
 
   Definition bunch_equiv_h := rtsc (bunch_equiv).
-
-  (* TODO: prove rtsc_subrel and move to relations.v *)
-  Lemma sc_subrel {A} (R1 R2 : relation A) x y :
-    (∀ x1 x2, R1 x1 x2 → R2 x1 x2) →
-    sc R1 x y → sc R2 x y.
-  Proof.
-    intros HR H1.
-    destruct H1 as [H1 | H1]; by econstructor; apply HR.
-  Qed.
 
   Lemma bunch_equiv_1 Δ Δ' :
     (Δ =? Δ') → (Δ ≡ Δ').
@@ -420,7 +411,7 @@ Module bunchHeight.
     intros ->; bind_ctx;
     econstructor; eauto; rewrite fill_app; by eapply IH.
 
-  Lemma wand_r_inv Δ ϕ ψ n :
+  Lemma wand_r_inv' Δ ϕ ψ n :
     (Δ ⊢ᴮ{n} WAND ϕ ψ) →
     (Δ ,, frml ϕ ⊢ᴮ{n} ψ)%B.
   Proof.
@@ -441,7 +432,7 @@ Module bunchHeight.
     - commute_left_rule IHproves2.
   Qed.
 
-  Lemma impl_r_inv Δ ϕ ψ n :
+  Lemma impl_r_inv' Δ ϕ ψ n :
     (Δ ⊢ᴮ{n} IMPL ϕ ψ) →
     (Δ ;, frml ϕ ⊢ᴮ{n} ψ)%B.
   Proof.
@@ -1703,52 +1694,49 @@ Module bunchHeight.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-End bunchHeight.
-
 (** Derivable rules / inversion lemmas *)
-Module Inversion.
 
-Lemma Impl_R Δ ϕ ψ :
+Lemma impl_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ IMPL ϕ ψ) →
   (Δ ;, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  by apply bunchHeight.impl_r_inv.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  by apply impl_r_inv'.
 Qed.
-Lemma Wand_R Δ ϕ ψ :
+Lemma wand_r_inv Δ ϕ ψ :
   (Δ ⊢ᴮ WAND ϕ ψ) →
   (Δ ,, frml ϕ ⊢ᴮ ψ)%B.
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  by apply bunchHeight.wand_r_inv.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  by apply wand_r_inv'.
 Qed.
-Lemma Sep_L Π ϕ ψ χ :
+Lemma sep_l_inv Π ϕ ψ χ :
   (fill Π (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
   (fill Π (frml ϕ,, frml ψ) ⊢ᴮ χ).
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  eapply bunchHeight.sep_l_inv'; eauto.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  eapply sep_l_inv'; eauto.
 Qed.
-Lemma Conj_L Π ϕ ψ χ :
+Lemma conj_l_inv Π ϕ ψ χ :
   (fill Π (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
   (fill Π (frml ϕ;, frml ψ) ⊢ᴮ χ).
 Proof.
-  intros [n H]%bunchHeight.proves_provesN.
-  eapply bunchHeight.provesN_proves.
-  eapply bunchHeight.conj_l_inv'; eauto.
+  intros [n H]%proves_provesN.
+  eapply provesN_proves.
+  eapply conj_l_inv'; eauto.
 Qed.
 
-Lemma Box_L Π Δ ϕ :
+Lemma box_l_inv Π Δ ϕ :
   (fill Π (BOX <·> (BOX <·> Δ)) ⊢ᴮ ϕ) →
   (fill Π (BOX <·> Δ) ⊢ᴮ ϕ).
 Proof.
   revert Π. induction Δ; simpl; eauto.
-  - intros Π [n H]%bunchHeight.proves_provesN.
-    eapply bunchHeight.provesN_proves.
-    eapply bunchHeight.box_l_inv'; eauto.
+  - intros Π [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply box_l_inv'; eauto.
   - intros Π H1.
     replace (fill Π (BOX <·> Δ1,, (BOX <·> Δ2)))%B
       with (fill (CtxCommaR (BOX <·> Δ1)::Π) (BOX <·> Δ2)) by reflexivity.
@@ -1765,17 +1753,17 @@ Proof.
     apply IHΔ1. simpl. done.
 Qed.
 
-Lemma Collapse_L Π Δ ϕ :
+Lemma collapse_l_inv Π Δ ϕ :
   (fill Π (frml (collapse Δ)) ⊢ᴮ ϕ) →
   (fill Π Δ ⊢ᴮ ϕ).
 Proof.
   revert Π. induction Δ; simpl; first done.
-  - intros Π [n H]%bunchHeight.proves_provesN.
-    eapply bunchHeight.provesN_proves.
-    eapply bunchHeight.top_l_inv'; eauto.
-  - intros Π [n H]%bunchHeight.proves_provesN.
-    eapply bunchHeight.provesN_proves.
-    eapply bunchHeight.emp_l_inv'; eauto.
+  - intros Π [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply top_l_inv'; eauto.
+  - intros Π [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply emp_l_inv'; eauto.
   - intros Π H1.
     replace (fill Π (Δ1,, Δ2))%B
       with (fill (CtxCommaR Δ1::Π) Δ2) by reflexivity.
@@ -1783,7 +1771,7 @@ Proof.
     replace (fill Π (Δ1,, frml (collapse Δ2)))%B
       with (fill (CtxCommaL (frml (collapse Δ2))::Π) Δ1) by reflexivity.
     apply IHΔ1. simpl.
-    by apply Sep_L.
+    by apply sep_l_inv.
   - intros Π H1.
     replace (fill Π (Δ1;, Δ2))%B
       with (fill (CtxSemicR Δ1::Π) Δ2) by reflexivity.
@@ -1791,7 +1779,7 @@ Proof.
     replace (fill Π (Δ1;, frml (collapse Δ2)))%B
       with (fill (CtxSemicL (frml (collapse Δ2))::Π) Δ1) by reflexivity.
     apply IHΔ1. simpl.
-    by apply Conj_L.
+    by apply conj_l_inv.
 Qed.
 
-End Inversion.
+End SeqcalcHeight.
