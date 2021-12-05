@@ -1,0 +1,300 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="config.js"></script>
+<script type="text/javascript" src="coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="./"> Home </a>
+      <!-- <a href="./indexpage.html"> Index </a> -->
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">bunched.algebra.notation</h1>
+
+<div class="code">
+<span class="id" title="keyword">From</span> <span class="id" title="var">stdpp</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="https://plv.mpi-sws.org/coqdoc/stdpp//stdpp.prelude.html#"><span class="id" title="library">prelude</span></a>.<br/>
+</div>
+
+<div class="doc">
+<a id="lab1"></a><h1 class="section">Turnstiles</h1>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ⊢ Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P '⊢@{' PROP } Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;(⊢)".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'(⊢@{' PROP } )".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;( P ⊣⊢.)".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;(.⊣⊢ Q )".<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ⊣⊢ Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 95, <span class="id" title="keyword">no</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P '⊣⊢@{' PROP } Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 95, <span class="id" title="keyword">no</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;(⊣⊢)".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'(⊣⊢@{' PROP } )".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;(.⊢ Q )".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;( P ⊢.)".<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;⊢ Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'⊢@{' PROP } Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200).<br/>
+</div>
+
+<div class="doc">
+The definition must coincide with "'⊢@{' PROP } Q". 
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;'(⊢@{' PROP } Q )".<br/>
+</div>
+
+<div class="doc">
+Rationale:
+Notation <span class="inlinecode">(</span> <span class="inlinecode">'⊢@{'</span> <span class="inlinecode"><a class="idref" href="bunched.interp_s4.html#interp.PROP"><span class="id" title="variable">PROP</span></a></span> <span class="inlinecode">}</span> <span class="inlinecode">)</span> prevents parsing <span class="inlinecode">(⊢@{<a class="idref" href="bunched.interp_s4.html#interp.PROP"><span class="id" title="variable">PROP</span></a>}</span> <span class="inlinecode"><span class="id" title="var">Q</span>)</span> using the
+<span class="inlinecode">⊢@{<a class="idref" href="bunched.interp_s4.html#interp.PROP"><span class="id" title="variable">PROP</span></a>}</span> <span class="inlinecode"><span class="id" title="var">Q</span></span> notation; since the latter parse arises from composing two
+notations, it is missed by the automatic left-factorization.
+
+<div class="paragraph"> </div>
+
+To fix that, we force left-factorization by explicitly composing parentheses with
+<span class="inlinecode">'⊢@{'</span> <span class="inlinecode"><a class="idref" href="bunched.interp_s4.html#interp.PROP"><span class="id" title="variable">PROP</span></a></span> <span class="inlinecode">}</span> <span class="inlinecode"><span class="id" title="var">Q</span></span> into the new notation <span class="inlinecode">(</span> <span class="inlinecode">'⊢@{'</span> <span class="inlinecode"><a class="idref" href="bunched.interp_s4.html#interp.PROP"><span class="id" title="variable">PROP</span></a></span> <span class="inlinecode">}</span> <span class="inlinecode"><span class="id" title="var">Q</span></span> <span class="inlinecode">)</span>,
+which successfully undergoes automatic left-factoring. 
+<div class="paragraph"> </div>
+
+<a id="lab2"></a><h1 class="section">BI connectives</h1>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;'emp'".<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'⌜' φ '⌝'" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, φ <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">format</span> "⌜ φ ⌝").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ∗ Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 80, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P -∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "'[' P  '/' -∗  Q ']'").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;⎡ P ⎤".<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Modalities 
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;pers&gt;' P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;pers&gt;?' p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>, <span class="id" title="var">format</span> "'&lt;pers&gt;?' p  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;▷ P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;▷? p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "▷? p  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;▷^ n P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">n</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "▷^ n  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Infix</span> &quot;∗-∗" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 95, <span class="id" title="keyword">no</span> <span class="id" title="keyword">associativity</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;affine&gt;' P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;affine&gt;?' p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>, <span class="id" title="var">format</span> "'&lt;affine&gt;?' p  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;absorb&gt;' P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;absorb&gt;?' p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>, <span class="id" title="var">format</span> "'&lt;absorb&gt;?' p  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;□ P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'□?' p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>, <span class="id" title="var">format</span> "'□?' p  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;◇ P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;■ P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;■? p P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="var">p</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">P</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>, <span class="id" title="var">format</span> "■? p  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;obj&gt;' P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'&lt;subj&gt;' P" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>).<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab3"></a><h1 class="section">Update modalities</h1>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;|==&gt; Q" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">format</span> "|==&gt;  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ==∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">format</span> "'[' P  '/' ==∗  Q ']'").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E1 , E2 }=&gt; Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>, <span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E1 , E2 }=&gt;  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E1 , E2 }=∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>,<span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "'[' P  '/' ={ E1 , E2 }=∗  Q ']'").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E }=&gt; Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E }=&gt;  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E }=∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "'[' P  '/' ={ E }=∗  Q ']'").<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Step-taking fancy updates 
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E1 } [ E2 ]▷=&gt; Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>, <span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E1 } [ E2 ]▷=&gt;  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E1 } [ E2 ]▷=∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>, <span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "'[' P  '/' ={ E1 } [ E2 ]▷=∗  Q ']'").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E }▷=&gt; Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E }▷=&gt;  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E }▷=∗ Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "'[' P  '/' ={ E }▷=∗  Q ']'").<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Multi-step-taking fancy updates 
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E1 } [ E2 ]▷=&gt;^ n Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>, <span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">n</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E1 } [ E2 ]▷=&gt;^ n  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E1 } [ E2 ]▷=∗^ n Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E1</span>, <span class="id" title="var">E2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">n</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "P  ={ E1 } [ E2 ]▷=∗^ n  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;|={ E }▷=&gt;^ n Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">n</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "|={ E }▷=&gt;^ n  Q").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;P ={ E }▷=∗^ n Q"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 99, <span class="id" title="var">E</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 50, <span class="id" title="var">n</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 9, <span class="id" title="var">Q</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "P  ={ E }▷=∗^ n  Q").<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab4"></a><h1 class="section">Big Ops</h1>
+
+</div>
+<div class="code">
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'list]' k ↦ x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  list]  k ↦ x  ∈  l ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'list]' x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  list]  x  ∈  l ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'list]' k ↦ x1 ; x2 ∈ l1 ; l2 , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l1</span>, <span class="id" title="var">l2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x1</span>, <span class="id" title="var">x2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  list]  k ↦ x1 ; x2  ∈  l1 ; l2 ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'list]' x1 ; x2 ∈ l1 ; l2 , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l1</span>, <span class="id" title="var">l2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x1</span>, <span class="id" title="var">x2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  list]  x1 ; x2  ∈  l1 ; l2 ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗]' Ps" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20).<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∧' 'list]' k ↦ x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∧  list]  k ↦ x  ∈  l ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∧' 'list]' x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∧  list]  x  ∈  l ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∧]' Ps" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20).<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∨' 'list]' k ↦ x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∨  list]  k ↦ x  ∈  l ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∨' 'list]' x ∈ l , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">l</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∨  list]  x  ∈  l ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∨]' Ps" (<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 20).<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'map]' k ↦ x ∈ m , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">m</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  map]  k ↦ x  ∈  m ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'map]' x ∈ m , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">m</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  map]  x  ∈  m ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'map]' k ↦ x1 ; x2 ∈ m1 ; m2 , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">m1</span>, <span class="id" title="var">m2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">k</span>, <span class="id" title="var">x1</span>, <span class="id" title="var">x2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  map]  k ↦ x1 ; x2  ∈  m1 ; m2 ,  P").<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'map]' x1 ; x2 ∈ m1 ; m2 , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">m1</span>, <span class="id" title="var">m2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x1</span>, <span class="id" title="var">x2</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  map]  x1 ; x2  ∈  m1 ; m2 ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'set]' x ∈ X , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  set]  x  ∈  X ,  P").<br/>
+
+<br/>
+<span class="id" title="keyword">Reserved Notation</span> &quot;'[∗' 'mset]' x ∈ X , P"<br/>
+&nbsp;&nbsp;(<span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 200, <span class="id" title="var">X</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 10, <span class="id" title="var">x</span> <span class="id" title="tactic">at</span> <span class="id" title="keyword">level</span> 1, <span class="id" title="tactic">right</span> <span class="id" title="keyword">associativity</span>,<br/>
+&nbsp;&nbsp;&nbsp;<span class="id" title="var">format</span> "[∗  mset]  x  ∈  X ,  P").<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Define the scope 
+</div>
+<div class="code">
+<span class="id" title="keyword">Declare Scope</span> <span class="id" title="var">bi_scope</span>.<br/>
+<span class="id" title="keyword">Delimit</span> <span class="id" title="keyword">Scope</span> <span class="id" title="var">bi_scope</span> <span class="id" title="keyword">with</span> <span class="id" title="var">I</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
