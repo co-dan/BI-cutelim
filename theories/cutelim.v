@@ -10,6 +10,7 @@ Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
     (Ts, T) ∈ rules → linear_bterm T.
 
 Module M.
+  Definition bterm := bterm nat.
   Definition rules := rules.
   Definition rules_good := rules_good.
 End M.
@@ -21,15 +22,15 @@ Import SH S.
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
 
-Global Instance bunch_monoid : Monoid comma :=
+Global Instance bunch_monoid : Monoid bunch comma :=
   {| monoid_unit := empty |}.
 
-Definition PB := PB bunch.
-Definition PB_alg := PB_alg bunch comma.
+Definition PB := PM bunch.
+Canonical Structure PB_alg := PM_alg bunch comma.
 
 (** ** Principal closed sets *)
 Program Definition Fint (ϕ : formula) : PB :=
-  {| PBPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
+  {| PMPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
 Next Obligation. solve_proper. Qed.
 
 Definition C := C bunch comma formula Fint.
@@ -98,7 +99,7 @@ Qed.
 
 (** Some calculations in the model. *)
 Program Definition PB_and_alt (X Y : PB) :=
-  MkPB bunch (λ Δ, ∃ Δ1 Δ2, (Δ ≡ (Δ1;,Δ2)%B) ∧
+  MkPM bunch (λ Δ, ∃ Δ1 Δ2, (Δ ≡ (Δ1;,Δ2)%B) ∧
                               Δ1 ∈ X ∧ Δ2 ∈ Y) _.
 Next Obligation. solve_proper. Qed.
 
@@ -124,7 +125,7 @@ Proof.
 Qed.
 
 Program Definition PB_impl_alt (X Y : PB) :=
-  MkPB bunch (λ Δ, ∀ Δ', Δ' ∈ X → (Δ ;, Δ')%B ∈ Y) _.
+  MkPM bunch (λ Δ, ∀ Δ', Δ' ∈ X → (Δ ;, Δ')%B ∈ Y) _.
 Next Obligation.
   intros X Y Δ Δ2 Heq. split; repeat intro.
   - rewrite -Heq. naive_solver.
@@ -147,10 +148,10 @@ Proof.
   apply Is_closed_inc.
   change (from_closure.cl bunch comma formula Fint) with cl.
   change (cl (X -∗ (Y : PB)) ⊢@{PB_alg} X -∗ (Y : PB)).
-  cut (PB_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
+  cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
                (λ '(Δ, ϕ), Fint' (WAND (collapse (`Δ)) (`ϕ)) : PB)
-       ≡ (PB_wand _ _ X (Y : PB))%I).
-  { intros <-. apply PB_forall_closed.
+       ≡ (PM_wand _ _ X (Y : PB))%I).
+  { intros <-. apply PM_forall_closed.
     intros. destruct x. apply _. }
   split.
   - intros Δ HXY Δ' HX.
@@ -170,7 +171,7 @@ Proof.
 Qed.
 
 Program Definition PB_impl' (X Y : PB) : PB :=
-  {| PBPred := λ Δ, ∀ Δ', X Δ' → Y (Δ ;, Δ')%B |}.
+  {| PMPred := λ Δ, ∀ Δ', X Δ' → Y (Δ ;, Δ')%B |}.
 Next Obligation.
   intros X Y D1 D2 H1. by setoid_rewrite H1.
 Qed.
@@ -184,10 +185,10 @@ Proof.
   apply Is_closed_inc.
   change (from_closure.cl bunch comma formula Fint) with cl.
   (* change (cl (PB_impl' X Y) ⊢@{PB_alg} X → (Y : PB)). *)
-  cut (PB_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
+  cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
                (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)) : PB)
        ≡ (PB_impl' X Y)%I).
-  { intros <-. apply PB_forall_closed.
+  { intros <-. apply PM_forall_closed.
     intros. destruct x. apply _. }
   split.
   - intros Δ HXY Δ' HX.
@@ -352,7 +353,7 @@ Qed.
 *)
 Program Definition PB_blinterm_interp `{!EqDecision V, !Countable V}
       (T : bterm V) (Xs : V → C_alg) : PB :=
-  {| PBPred := λ Δ, ∃ (Δs : V → bunch),
+  {| PMPred := λ Δ, ∃ (Δs : V → bunch),
     (forall (i : V), (Δs i) ∈ (Xs i)) ∧
     Δ ≡ bterm_ctx_act T Δs |}.
 Next Obligation. solve_proper. Qed.
@@ -492,6 +493,18 @@ Proof.
 Qed.
 
 (** * Cut admissibility *)
+Theorem C_interp_cf (Δ : bunch) (ϕ : formula) :
+  seq_interp (PROP:=C_alg) C_atom Δ ϕ →
+  (Δ ⊢ᴮ ϕ).
+Proof.
+  unfold seq_interp. intros H.
+  destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
+  apply (Hϕ2 _). unfold inner_interp.
+  apply (H _). apply (C_collapse_inv _ [] Δ). simpl.
+  apply (bunch_interp_collapse C_alg C_atom).
+  apply okada_property.
+Qed.
+
 Theorem cut Γ Δ ϕ ψ :
   (Δ ⊢ᴮ ψ) →
   (fill Γ (frml ψ) ⊢ᴮ ϕ) →
@@ -504,15 +517,11 @@ Proof.
   change (seq_interp C_atom Δ ψ) with (bunch_interp C_atom Δ ⊢@{C_alg} formula_interp C_atom ψ) in H1.
   change (seq_interp C_atom (fill Γ (frml ψ)) ϕ) with
     (bunch_interp C_atom (fill Γ (frml ψ)) ⊢@{C_alg} formula_interp C_atom ϕ) in H2.
-  cut (@seq_interp C_alg C_atom (fill Γ Δ) ϕ).
-  { simpl. intros H3.
-    destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
-    apply (Hϕ2 _). unfold inner_interp.
-    apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
-    apply (bunch_interp_collapse C_alg C_atom).
-    apply okada_property. }
-  simpl. rewrite -H2.
-  apply bunch_interp_fill_mono, H1.
+  apply C_interp_cf.
+  unfold seq_interp.
+  etrans; last apply H2.
+  apply bunch_interp_fill_mono.
+  apply H1.
 Qed.
 
 (* Print Assumptions cut. *)

@@ -21,8 +21,9 @@ Module Type SIMPLE_STRUCT_EXT.
         <<([T₁; ..; T], T)>>.
 *)
 
-  Parameter rules : list (list (bterm nat) * bterm nat).
-  Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
+  Definition bterm := bterm nat.
+  Parameter rules : list (list bterm * bterm).
+  Parameter rules_good : ∀ (Ts : list bterm) (T : bterm),
       (Ts, T) ∈ rules → linear_bterm T.
 
 End SIMPLE_STRUCT_EXT.
@@ -45,7 +46,7 @@ Inductive proves : bunch → formula → Prop :=
 | BI_Contr Π Δ ϕ : (fill Π (Δ ;, Δ) ⊢ᴮ ϕ) →
                    fill Π Δ ⊢ᴮ ϕ
 | BI_Simple_Ext Π (Δs : nat → bunch)
-  (Ts : list (bterm nat)) (T : bterm nat) ϕ :
+  (Ts : list bterm) (T : bterm) ϕ :
   (Ts, T) ∈ rules →
   (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ ϕ) →
   fill Π (bterm_ctx_act T Δs) ⊢ᴮ ϕ
@@ -155,10 +156,10 @@ Qed.
 (** * Interpretation *)
 (** Associated with the set of rules:
      when is the set of rules is valid in an algebra? *)
-Definition rule_valid (PROP : bi) (Ts : list (bterm nat)) (T : bterm nat) :=
+Definition rule_valid (PROP : bi) (Ts : list bterm) (T : bterm) :=
   ∀ (Xs : nat → PROP),
     bterm_alg_act T Xs ⊢
-       ∃ Ti' : {Ti : bterm nat | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
+       ∃ Ti' : {Ti : bterm | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
 
 (** Sequent calculus is sound w.r.t. the BI algebras. *)
 Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :

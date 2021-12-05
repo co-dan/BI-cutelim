@@ -4,7 +4,7 @@ From stdpp Require Import prelude.
 From bunched.algebra Require Import bi.
 
 (** We start with a commutative monoid on a setoid [M] *)
-Class Monoid {M : Type} `{!Equiv M} (o : M → M → M) := {
+Class Monoid (M : Type) `{!Equiv M} (o : M → M → M) := {
   monoid_unit : M;
   monoid_op_proper :> Proper ((≡) ==> (≡) ==> (≡)) o;
   monoid_assoc :> Assoc (≡) o;
@@ -14,92 +14,92 @@ Class Monoid {M : Type} `{!Equiv M} (o : M → M → M) := {
 
 Section FromMonoid.
   Variable (M : Type) (o : M → M → M).
-  Context `{!Equiv M, !Monoid o}.
+  Context `{!Equiv M, !Monoid M o}.
   Context `{!Equivalence (≡@{M})}.
 
   Infix "●" := (o) (at level 80, right associativity).
 
   (** The carrier of the algebra are the predicates on [M] that respect equivalence. *)
-  Record PB := MkPB {
-    PBPred :> M → Prop;
-    PBPred_proper : Proper ((≡) ==> (iff)) PBPred;
+  Record PM := MkPM {
+    PMPred :> M → Prop;
+    PMPred_proper : Proper ((≡) ==> (iff)) PMPred;
   }.
-  Arguments MkPB _ {_}.
-  Global Existing Instance PBPred_proper.
+  Arguments MkPM _ {_}.
+  Global Existing Instance PMPred_proper.
 
-  Definition PB_entails (X Y : PB) : Prop :=
+  Definition PM_entails (X Y : PM) : Prop :=
     ∀ x, X x → Y x.
-  Local Infix "⊢" := PB_entails.
+  Local Infix "⊢" := PM_entails.
 
-  Global Instance PB_equiv : Equiv PB := λ X Y, (X ⊢ Y) ∧ (Y ⊢ X).
-  Global Instance PB_equiv_equivalence : Equivalence (≡@{PB}).
+  Global Instance PM_equiv : Equiv PM := λ X Y, (X ⊢ Y) ∧ (Y ⊢ X).
+  Global Instance PM_equiv_equivalence : Equivalence (≡@{PM}).
   Proof.
-    rewrite /equiv /PB_equiv.
+    rewrite /equiv /PM_equiv.
     repeat split; repeat intro; naive_solver.
   Qed.
 
 
-  Program Definition PB_and (X Y : PB) : PB :=
-    {| PBPred := (λ x, X x ∧ Y x) |}.
+  Program Definition PM_and (X Y : PM) : PM :=
+    {| PMPred := (λ x, X x ∧ Y x) |}.
   Next Obligation. solve_proper. Qed.
 
-  Global Instance PB_and_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_and.
+  Global Instance PM_and_proper : Proper ((≡) ==> (≡) ==> (≡)) PM_and.
   Proof. compute; naive_solver. Qed.
 
-  Program Definition PB_impl (X Y : PB) : PB :=
-    {| PBPred := (λ x, X x → Y x) |}.
+  Program Definition PM_impl (X Y : PM) : PM :=
+    {| PMPred := (λ x, X x → Y x) |}.
   Next Obligation.
     intros X Y x x' Hx. rewrite Hx. eauto.
   Qed.
 
-  Global Instance PB_impl_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_impl.
+  Global Instance PM_impl_proper : Proper ((≡) ==> (≡) ==> (≡)) PM_impl.
   Proof. compute; naive_solver. Qed.
 
-  Program Definition PB_emp : PB :=
-    {| PBPred := (λ x, x ≡ monoid_unit) |}.
+  Program Definition PM_emp : PM :=
+    {| PMPred := (λ x, x ≡ monoid_unit) |}.
   Next Obligation. solve_proper. Qed.
 
-  Program Definition PB_sep (X Y : PB) : PB :=
-    {| PBPred := (λ x, ∃ x1 x2, X x1 ∧ Y x2 ∧ (x ≡ (x1 ● x2))) |}.
+  Program Definition PM_sep (X Y : PM) : PM :=
+    {| PMPred := (λ x, ∃ x1 x2, X x1 ∧ Y x2 ∧ (x ≡ (x1 ● x2))) |}.
   Next Obligation. solve_proper. Qed.
 
-  Global Instance PB_sep_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_sep.
+  Global Instance PM_sep_proper : Proper ((≡) ==> (≡) ==> (≡)) PM_sep.
   Proof. compute; naive_solver. Qed.
 
-  Program Definition PB_wand (X Y : PB) : PB :=
-    @MkPB (λ x, ∀ x1, X x1 → Y (x ● x1)) _.
+  Program Definition PM_wand (X Y : PM) : PM :=
+    @MkPM (λ x, ∀ x1, X x1 → Y (x ● x1)) _.
   Next Obligation.
     intros X Y x x' Hx. by setoid_rewrite Hx.
   Qed.
 
-  Global Instance PB_wand_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_wand.
+  Global Instance PM_wand_proper : Proper ((≡) ==> (≡) ==> (≡)) PM_wand.
   Proof. compute; naive_solver. Qed.
 
-  Definition PB_pure (ϕ : Prop) : PB := MkPB (λ _, ϕ).
+  Definition PM_pure (ϕ : Prop) : PM := MkPM (λ _, ϕ).
 
-  Program Definition PB_or (X Y : PB) : PB :=
-    {| PBPred := (λ x, X x ∨ Y x) |}.
+  Program Definition PM_or (X Y : PM) : PM :=
+    {| PMPred := (λ x, X x ∨ Y x) |}.
   Next Obligation. solve_proper. Qed.
 
-  Global Instance PB_or_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_or.
+  Global Instance PM_or_proper : Proper ((≡) ==> (≡) ==> (≡)) PM_or.
   Proof. compute; naive_solver. Qed.
 
-  Program Definition PB_forall (A : Type) (DD : A → PB) : PB :=
-    @MkPB (λ x, ∀ (a : A), DD a x) _.
+  Program Definition PM_forall (A : Type) (DD : A → PM) : PM :=
+    @MkPM (λ x, ∀ (a : A), DD a x) _.
   Next Obligation.
     intros A DD x x' Hx. by setoid_rewrite Hx.
   Qed.
 
-  Program Definition PB_exists (A : Type) (PBPB : A → PB) : PB :=
-    @MkPB (λ x, ∃ (a : A), PBPB a x) _.
+  Program Definition PM_exists (A : Type) (PMPM : A → PM) : PM :=
+    @MkPM (λ x, ∃ (a : A), PMPM a x) _.
   Next Obligation.
-    intros A PBPB x x' Hx. by setoid_rewrite Hx.
+    intros A PMPM x x' Hx. by setoid_rewrite Hx.
   Qed.
 
-  Local Notation "'emp'" := PB_emp.
-  Local Infix "∗" := PB_sep.
-  Local Infix "-∗" := PB_wand.
-  Local Infix "∧" := PB_and.
+  Local Notation "'emp'" := PM_emp.
+  Local Infix "∗" := PM_sep.
+  Local Infix "-∗" := PM_wand.
+  Local Infix "∧" := PM_and.
 
   Lemma sep_mono P P' Q Q' :
     (P ⊢ Q) → (P' ⊢ Q') → P ∗ P' ⊢ Q ∗ Q'.
@@ -147,12 +147,12 @@ Section FromMonoid.
     by eapply HH.
   Qed.
 
-  Global Instance entails_preorder : PreOrder PB_entails.
+  Global Instance entails_preorder : PreOrder PM_entails.
   Proof. split; compute; naive_solver. Qed.
 
-  Lemma PB_bi_mixin : BiMixin (PROP:=PB)
-                              PB_entails PB_emp PB_pure PB_and PB_or
-                              PB_impl PB_forall PB_exists PB_sep PB_wand.
+  Lemma PM_bi_mixin : BiMixin (PROP:=PM)
+                              PM_entails PM_emp PM_pure PM_and PM_or
+                              PM_impl PM_forall PM_exists PM_sep PM_wand.
   Proof.
     split; try by (compute; naive_solver).
     - apply _.
@@ -166,16 +166,16 @@ Section FromMonoid.
   Qed.
 
 
-  Canonical Structure PB_alg : bi :=
-    {| bi_bi_mixin := PB_bi_mixin; |}.
+  Definition PM_alg : bi :=
+    {| bi_bi_mixin := PM_bi_mixin; |}.
 
-  Global Instance ElemOf_PB : ElemOf M PB := λ a X, X a.
+  Global Instance ElemOf_PM : ElemOf M PM := λ a X, X a.
 
-  Global Instance ElemOf_PB_Peoper :
-    Proper ((≡) ==> (≡) ==> (≡)) (∈@{PB}).
+  Global Instance ElemOf_PM_Peoper :
+    Proper ((≡) ==> (≡) ==> (≡)) (∈@{PM}).
   Proof.
     intros x1 x2 Hx X1 X2 HX.
-    rewrite /elem_of /ElemOf_PB.
+    rewrite /elem_of /ElemOf_PM.
     rewrite Hx. split; apply HX.
   Qed.
 

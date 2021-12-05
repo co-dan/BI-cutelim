@@ -7,42 +7,43 @@ Section FromClosure.
 
   (** Given a BI algebra [P(M)] for a commutative monoid [M] .. *)
   Variable (M : Type) (o : M → M → M).
-  Context `{!Equiv M, !Monoid o}.
+  Context `{!Equiv M, !Monoid M o}.
   Context `{!Equivalence (≡@{M})}.
 
   Infix "●" := (o) (at level 80, right associativity).
 
-  Definition PB := PB M.
-  Definition MkPB := MkPB M.
-  Definition PB_alg := PB_alg M o.
+  Definition PM := PM M.
+  Definition MkPM := MkPM M.
+  Canonical Structure PM_alg := PM_alg M o.
 
-  (** We start with a closed basis. *)
+  (** We start with a closed basis: a collection of principal closed
+  sets, index by some type [Basis]. *)
   Variable (Basis : Type).
-  Variable (basis : Basis → PB).
+  Variable (basis : Basis → PM).
 
   (** Here are we are abusing the encoding a little bit;
     the assumption [X ⊆ basis(i)] is external, but we can
     quantifier over its proofs in the type theory. *)
-  Program Definition cl (X : PB) : PB :=
-    @MkPB (λ m, ∀ (i : Basis), ((X : PB_alg) ⊢ basis i)
+  Program Definition cl (X : PM) : PM :=
+    @MkPM (λ m, ∀ (i : Basis), ((X : PM_alg) ⊢ basis i)
                  → basis i m) _.
   Next Obligation.
     intros X i1 i2 HD. by setoid_rewrite HD.
   Qed.
 
-  Lemma cl_unit X : X ⊢ cl (X : PB_alg).
+  Lemma cl_unit X : X ⊢ cl (X : PM_alg).
   Proof.
     intros x Hx. simpl. intros i Hi.
     by apply (Hi x).
   Qed.
 
-  Lemma cl_mono (X Y : PB) : (X ⊢@{PB_alg} Y) → (cl X ⊢@{PB_alg} cl Y).
+  Lemma cl_mono (X Y : PM) : (X ⊢@{PM_alg} Y) → (cl X ⊢@{PM_alg} cl Y).
   Proof.
     intros HX x. simpl. intros H1 i HY.
     eapply H1. by rewrite HX.
   Qed.
 
-  Lemma cl_idemp (X : PB) : cl (cl X) ≡ cl X.
+  Lemma cl_idemp (X : PM) : cl (cl X) ≡ cl X.
   Proof.
     split; last first.
     { eapply (cl_unit (cl X)). }
@@ -57,18 +58,18 @@ Section FromClosure.
     split; eapply (cl_mono _ _); by rewrite HXY.
   Qed.
 
-  Class Is_closed (X : PB) := closed_eq_cl : X ≡ cl X.
+  Class Is_closed (X : PM) := closed_eq_cl : X ≡ cl X.
 
   (** Carrier of the algebra are closed sets. *)
   Record C :=
-    { CPred :> PB ; CPred_closed : Is_closed CPred }.
+    { CPred :> PM ; CPred_closed : Is_closed CPred }.
 
-  Global Instance C_equiv : Equiv C := (PB_equiv M : Equiv PB).
+  Global Instance C_equiv : Equiv C := (PM_equiv M : Equiv PM).
 
-  Definition C_entails (X Y : C) : Prop := PB_entails M (X : PB) (Y : PB).
+  Definition C_entails (X Y : C) : Prop := PM_entails M (X : PM) (Y : PM).
   Local Infix "⊢" := C_entails.
 
-  Global Instance ElemOf_C : ElemOf M C := λ a X, (X : PB) a.
+  Global Instance ElemOf_C : ElemOf M C := λ a X, (X : PM) a.
 
   Global Instance ElemOf_C_Proper :
     Proper ((≡) ==> (≡) ==> (≡)) (∈@{C}).
@@ -98,33 +99,20 @@ Section FromClosure.
 
   Global Existing Instance CPred_closed.
 
-  Global Instance Is_closed_cl (X : PB) : Is_closed (cl X).
+  Global Instance Is_closed_cl (X : PM) : Is_closed (cl X).
   Proof.
     rewrite /Is_closed. by rewrite cl_idemp.
   Qed.
 
-  (** Specializing [cl : PB → PB] to [PB → C] *)
-  Program Definition cl' (X : PB) : C :=
-    {| CPred := cl X |}.
-
-
-    (** The interior operation *)
-  Definition PB_int (X : PB) : PB :=
-    (∃ (Z : C), ⌜(Z : PB) ⊢@{PB_alg} X⌝ ∧ (Z: PB))%I.
-
-  Definition int (X : PB) : PB := cl (PB_int X).
-  Program Definition int' (X : PB) : C :=
-    {| CPred := int X |}.
-
-  Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) (X : PB).
+  Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) (X : PM).
   Proof.
     intros D1 D2 HD.
-    by apply PBPred_proper.
+    by apply PMPred_proper.
   Qed.
 
   Global Instance C_equiv_equivalence : Equivalence (≡@{C}).
   Proof.
-    rewrite /equiv /C_equiv /PB_equiv.
+    rewrite /equiv /C_equiv /PM_equiv.
     repeat split; repeat intro; naive_solver.
   Qed.
 
@@ -147,9 +135,23 @@ Section FromClosure.
     by rewrite HXY.
   Qed.
 
+  (** ** Additional operations *)
+
+  (** Specializing [cl : PM → PM] to [PM → C] *)
+  Program Definition cl' (X : PM) : C :=
+    {| CPred := cl X |}.
+
+  (** The interior operation *)
+  Definition PM_int (X : PM) : PM :=
+    (∃ (Z : C), ⌜(Z : PM) ⊢@{PM_alg} X⌝ ∧ (Z: PM))%I.
+  Definition int (X : PM) : PM := cl (PM_int X).
+  Program Definition int' (X : PM) : C :=
+    {| CPred := int X |}.
+
+
   (** * Properties of the closure operator and closed sets *)
-  Lemma Is_closed_inc (X : PB) :
-    ((cl X : PB_alg) ⊢@{PB_alg} X) → Is_closed X.
+  Lemma Is_closed_inc (X : PM) :
+    ((cl X : PM_alg) ⊢@{PM_alg} X) → Is_closed X.
   Proof.
     intros H1. unfold Is_closed.
     split.
@@ -166,16 +168,16 @@ Section FromClosure.
   Definition basis' i : C :=
     {| CPred := basis i |}.
 
-  Lemma cl_adj (X : PB) (Y : PB) `{!Is_closed Y} :
-    (X ⊢@{PB_alg} Y) → cl X ⊢@{PB_alg} Y.
+  Lemma cl_adj (X : PM) (Y : PM) `{!Is_closed Y} :
+    (X ⊢@{PM_alg} Y) → cl X ⊢@{PM_alg} Y.
   Proof.
     rewrite (@closed_eq_cl Y).
     rewrite -{2}(cl_idemp Y).
     apply cl_mono.
   Qed.
 
-  Lemma cl'_adj (X : PB) (Y : C) :
-    (X ⊢@{PB_alg} (Y : PB)) → cl' X ⊢ Y.
+  Lemma cl'_adj (X : PM) (Y : C) :
+    (X ⊢@{PM_alg} (Y : PM)) → cl' X ⊢ Y.
   Proof.
     intros H1. apply cl_adj.
     { apply _. }
@@ -184,13 +186,13 @@ Section FromClosure.
 
   (** Alternative descriptions of the closure operator, internally in
   the language of the BI algebra *)
-  Lemma cl_alt_eq (X : PB) :
-    (cl X : PB) ≡
-      (∀ Z : { Y : C | X ⊢@{PB_alg} (Y : PB) }, `Z : PB)%I.
+  Lemma cl_alt_eq (X : PM) :
+    (cl X : PM) ≡
+      (∀ Z : { Y : C | X ⊢@{PM_alg} (Y : PM) }, `Z : PM)%I.
   Proof.
     split.
     - simpl. intros m H1.
-      rewrite /bi_forall/PB_forall /=.
+      rewrite /bi_forall/PM_forall /=.
       intros [[Y HY] HXY]. simpl.
       eapply HY. intros i Hi.
       eapply H1. rewrite -Hi. eapply HXY.
@@ -198,41 +200,42 @@ Section FromClosure.
       apply (H1 (basis' ϕ ↾ HX)).
   Qed.
 
-  Lemma cl_alt_eq_2 (X : PB) :
-    (cl X : PB) ≡
-      (∀ Y : C, (⌜X ⊢@{PB_alg} (Y : PB)⌝) → Y : PB)%I.
+  Lemma cl_alt_eq_2 (X : PM) :
+    (cl X : PM) ≡
+      (∀ Y : C, (⌜X ⊢@{PM_alg} (Y : PM)⌝) → Y : PM)%I.
   Proof.
     rewrite cl_alt_eq.
-    split.
-    - intros m H1. rewrite /bi_forall /bi_impl /=.
-      intros Y HXY. simpl.
+    apply bi.equiv_entails. split.
+    - rewrite /bi_forall /bi_impl /= /bi_forall.
+      intros m H1 Y HXY.
       apply (H1 (Y ↾ HXY)).
-    - intros m H1. rewrite /bi_forall /bi_impl /=.
-      intros [Y HXY]. simpl. apply H1.
-      apply HXY.
+    - rewrite /bi_forall /bi_impl /= /bi_forall.
+      intros m H1 [Y HXY]. simpl.
+      apply H1, HXY.
   Qed.
 
   (** * Closure strength and the BI operations *)
   Variable impl : C → C → C.
   Hypothesis impl_proper : Proper ((≡) ==> (≡) ==> (≡)) impl.
   Hypothesis (is_heyting_impl : ∀ (X Y Z : C),
-        ((X : PB) ⊢@{PB_alg} (impl Y Z : PB)) ↔
-          ((X : PB) ∧ (Y : PB) ⊢@{PB_alg} (Z : PB))%I).
+        ((X : PM) ⊢@{PM_alg} (impl Y Z : PM)) ↔
+          ((X : PM) ∧ (Y : PM) ⊢@{PM_alg} (Z : PM))%I).
+  (** This hypothesis is equivalent to [cl] being strong *)
   Hypothesis
-    (wand_closed : ∀ (X : PB) (Y : C),
-        Is_closed (X -∗ (Y : PB))%I).
+    (wand_closed : ∀ (X : PM) (Y : C),
+        Is_closed (X -∗ (Y : PM))%I).
 
   Local Instance wand_closed' :
-    ∀ (X : PB) (Y : PB), Is_closed Y →
-        Is_closed (X -∗ (Y : PB))%I.
+    ∀ (X : PM) (Y : PM), Is_closed Y →
+        Is_closed (X -∗ (Y : PM))%I.
   Proof.
     intros X Y HY.
     set (Y' := {| CPred := Y |} : C).
     eapply (wand_closed X Y').
   Qed.
 
-  Lemma cl_strong (X Y : PB) :
-    ((cl X) ∗ Y ⊢@{PB_alg} cl (X ∗ Y))%I.
+  Lemma cl_strong (X Y : PM) :
+    ((cl X) ∗ Y ⊢@{PM_alg} cl (X ∗ Y))%I.
   Proof.
     eapply bi.wand_elim_l'.
     apply cl_adj; first apply _.
@@ -241,27 +244,29 @@ Section FromClosure.
   Qed.
 
   (** Universal quantification and conjunciton *)
-  Global Instance PB_forall_closed (A : Type) (CC : A → PB) :
+  Global Instance PM_forall_closed (A : Type) (CC : A → PM) :
     (∀ x : A, Is_closed (CC x)) →
-    Is_closed (PB_forall M A CC).
+    Is_closed (PM_forall M A CC).
   Proof.
     intros HCC.
     apply Is_closed_inc.
     eapply bi.forall_intro=>a.
     rewrite cl_alt_eq_2.
     rewrite (bi.forall_elim ({| CPred := CC a |})).
-    intros m H1. apply H1.
+    intros m H1.
+    rewrite /bi_impl /= in H1.
+    apply H1.
     rewrite /bi_pure /=.
     clear. by rewrite (bi.forall_elim a).
   Qed.
 
   Definition C_forall (A : Type) (CC : A → C) : C :=
-    {| CPred := (∀ x : A, (CC x : PB))%I |}.
+    {| CPred := (∀ x : A, (CC x : PM))%I |}.
 
-  Global Instance PB_and_closed (X Y : PB) :
+  Global Instance PM_and_closed (X Y : PM) :
     Is_closed X →
     Is_closed Y →
-    Is_closed (PB_and M X Y).
+    Is_closed (PM_and M X Y).
   Proof.
     intros HX HY.
     apply Is_closed_inc.
@@ -272,26 +277,26 @@ Section FromClosure.
       rewrite -H'. intros ?. simpl. naive_solver.
   Qed.
 
-  Definition C_and (X Y : C) : C :=  {| CPred := ((X : PB) ∧ (Y : PB))%I |}.
+  Definition C_and (X Y : C) : C :=  {| CPred := ((X : PM) ∧ (Y : PM))%I |}.
 
   (** Disjunction, ex quantification, and multiplication *)
-  Definition C_or (X Y : C) : C := cl' (PB_or M (X : PB) (Y : PB)).
+  Definition C_or (X Y : C) : C := cl' (PM_or M (X : PM) (Y : PM)).
 
-  Definition C_exists (A : Type) (CC : A → C) : C := cl' (∃ x : A, CC x : PB)%I.
+  Definition C_exists (A : Type) (CC : A → C) : C := cl' (∃ x : A, CC x : PM)%I.
 
-  Definition C_emp : C := cl' (PB_emp M o).
+  Definition C_emp : C := cl' (PM_emp M o).
 
-  Definition C_sep (X Y : C) : C := cl' (PB_sep M o (X : PB) (Y : PB)).
+  Definition C_sep (X Y : C) : C := cl' (PM_sep M o (X : PM) (Y : PM)).
 
   (** Implications *)
   Definition C_impl (X : C) (Y : C) : C :=
     {| CPred := impl X Y |}.
 
-  Definition C_wand (X : PB) (Y : C) : C :=
-    {| CPred := PB_wand M o X (Y : PB) |}.
+  Definition C_wand (X : PM) (Y : C) : C :=
+    {| CPred := PM_wand M o X (Y : PM) |}.
 
   (** Embedding Coq propositions *)
-  Definition C_pure (ϕ : Prop) : C := cl' (PB_pure M ϕ).
+  Definition C_pure (ϕ : Prop) : C := cl' (PM_pure M ϕ).
 
   Local Notation "'emp'" := C_emp.
   Local Infix "∗" := C_sep.
@@ -386,9 +391,10 @@ Section FromClosure.
   Qed.
 
   (** [C] satisfies all the BI algebra laws *)
-  Lemma C_bi_mixin : BiMixin (PROP:=C)
-                              C_entails C_emp C_pure C_and C_or
-                              C_impl C_forall C_exists C_sep C_wand.
+  Lemma C_bi_mixin :
+    BiMixin (PROP:=C)
+      C_entails C_emp C_pure C_and C_or
+      C_impl C_forall C_exists C_sep C_wand.
   Proof.
     split.
     - apply _.
@@ -430,7 +436,7 @@ Section FromClosure.
     - apply impl_elim_l'.
     - intros. by apply bi.forall_intro.
     - intros A Ψ a m Hm.
-      apply Hm.
+      apply (Hm a).
     - intros. by apply exists_intro.
     - intros. by apply exists_elim.
     - apply sep_mono.
@@ -447,18 +453,19 @@ Section FromClosure.
 
   (** * Other properties *)
 
+  (** Description of implication in C in terms of the implication in P[M]. *)
   Lemma impl_from_int (X Y : C) :
-    (X → Y) ≡ int' (PB_impl M (X : PB) (Y : PB)).
+    ((X → Y) : C) ≡ int' ((X : PM) → (Y : PM))%I.
   Proof.
+    rewrite /bi_impl /=.
     rewrite bi.impl_alt_eq.
-    change (int' (PB_impl _ (X : PB) (Y : PB))) with (cl' (PB_int (PB_impl _ (X : PB) (Y : PB)))).
     apply bi.equiv_entails. split.
     - apply cl_adj; first apply _.
       apply bi.exist_elim=>R.
       apply is_heyting_impl.
       apply cl_adj; first apply _.
       apply bi.pure_elim'=>HR.
-      assert ((C_pure True : PB) ≡ (True : PB)%I) as Htrue.
+      assert ((C_pure True : PM) ≡ (True : PM)%I) as Htrue.
       { apply bi.equiv_entails; split.
         - apply bi.True_intro.
         - apply (cl_unit _). }
@@ -466,12 +473,12 @@ Section FromClosure.
       apply is_heyting_impl.
       rewrite Htrue.
       etrans; last apply (cl_unit _).
-      unfold PB_int.
+      unfold PM_int.
       apply (bi.exist_intro' _ _ R).
       apply bi.and_mono_l. apply bi.pure_intro.
       by apply bi.impl_intro_r.
     - apply cl_adj; first apply _.
-      unfold PB_int.
+      unfold PM_int.
       apply bi.exist_elim=>R.
       etrans; last apply cl_unit.
       apply (bi.exist_intro' _ _ R).
@@ -481,17 +488,17 @@ Section FromClosure.
       by apply bi.impl_elim_l' in HR.
   Qed.
 
-  Lemma cl_sep (X Y : PB) :
-    cl' (PB_sep M o X Y) ≡ C_sep (cl' X) (cl' Y).
+  Lemma cl_sep (X Y : PM) :
+    cl' (PM_sep _ o X Y) ≡ C_sep (cl' X) (cl' Y).
   Proof.
     rewrite /C_sep.
     split.
     { apply cl_mono. f_equiv; apply cl_unit. }
-    cut (cl' (PB_sep M o (cl X) (cl Y)) ⊢ cl' (PB_sep M o X Y)).
+    cut (cl' (PM_sep M o (cl X) (cl Y)) ⊢ cl' (PM_sep M o X Y)).
     { intros H1 m. apply (H1 m). }
     eapply cl'_adj.
     eapply bi.wand_elim_l'.
-    apply (cl'_adj X (cl' Y -∗ cl' (PB_sep M o X Y))).
+    apply (cl'_adj X (cl' Y -∗ cl' (PM_sep M o X Y))).
     apply bi.wand_intro_l.
     apply bi.wand_elim_l'.
     simpl.

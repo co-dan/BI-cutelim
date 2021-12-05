@@ -17,10 +17,11 @@ Structure (in the `theories` directory):
 - `bunch_decomp.v` -- helpful lemmas about decompositions of bunches
 - `seqcalc_height.v` -- the same sequent calculus, but with the notion of proof height.
   Includes proofs of invertibility of some of the rules.
-- `cutelim.v` -- the universal model for cut elimination
 - `algebra/bi.v`, `algebra/interface.v` -- BI algebras
+- `algebra/from_closure.v` -- BI algebra from a closure operator
+- `cutelim.v` -- the universal model for cut elimination
 
-There is also a formalization of the same method for BI with an S4-like box modality.
+There is also a formalization of the same method but for BI with an S4-like box modality.
 See `seqcalc_s4.v`, `seqcalc_height_s4.v`, `interp_s4.v`, and `cutelim_s4.v` in the `theories` folder.
 
 ## Compilation
@@ -31,10 +32,7 @@ You can install the dependency with opam using `opam install --deps-only .` or t
 If you have std++ installed then you can compile the project with `make -jN` where `N` is the number of threads you want to use.
 Compile the HTML docs with `make html`.
 
-
-
 ## Copyright
 
 The Coq formalization is distributed under the BSD-3 licence.
-The code in the `theories/algebra` folder is adapted from
-the Iris project <https://iris-project.org>
+Some code was adapted from the Iris project <https://iris-project.org>.

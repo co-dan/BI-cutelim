@@ -296,7 +296,7 @@ Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
   | BI_Contr C Δ ϕ n : (fill C (Δ ;, Δ) ⊢ᴮ{n} ϕ) →
                      fill C Δ ⊢ᴮ{S n} ϕ
   | BI_Simple_Ext Π (Δs : nat → bunch) n
-    (Ts : list (bterm nat)) (T : bterm nat) ϕ :
+    (Ts : list bterm) (T : bterm) ϕ :
     (Ts, T) ∈ rules →
     (∀ Ti, Ti ∈ Ts → fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ{n} ϕ) →
     fill Π (bterm_ctx_act T Δs) ⊢ᴮ{S n} ϕ
