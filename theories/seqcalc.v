@@ -181,7 +181,7 @@ Proof.
     rewrite bunch_ctx_interp_decomp.
     rewrite bterm_ctx_alg_act.
     rewrite HH.
-    rewrite bunch_ctx_interp_exist.
+    rewrite bunch_ctx_interp_exis t.
     apply bi.exist_elim=>Ti'.
     destruct Ti' as [Ti HTi].
     rewrite -bterm_ctx_alg_act.
