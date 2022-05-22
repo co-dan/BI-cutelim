@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
 From bunched Require Import syntax interp.
-From stdpp Require Import prelude base gmap fin_sets functions.
+From stdpp Require Import prelude base gmap fin_sets functions mapset.
 
 (** * Bunched terms *)
 Inductive bterm (var : Type) : Type :=
@@ -295,7 +295,7 @@ Section finite_preimage.
   Instance fn_lookup : Lookup A B (A -> B) := λ a f, Some (f a).
   #[refine] Global Instance finite_finitedomain : FiniteDomain (M := λ B, A -> B) f :=
   { enum_domain := enum _ }.
-  Proof. intros; apply elem_of_enum. Qed.
+  Proof. intros; apply elem_of_enum. Defined.
 End finite_preimage.
 
 Section map_preimage.
@@ -306,7 +306,7 @@ Section map_preimage.
   #[refine] Global Instance finmapmap_finitedomain : FiniteDomain m :=
   { enum_domain := fst <$> map_to_list m }.
   (* XXX fix set_solver. *)
-  Proof. move=> k a /elem_of_map_to_list. apply: elem_of_list_fmap_1. Qed.
+  Proof. move=> k a /elem_of_map_to_list. apply: elem_of_list_fmap_1. Defined.
 
 End map_preimage.
 
@@ -321,6 +321,114 @@ Section preimage_properties.
 
 End preimage_properties.
 (** / END TODO *)
+
+Global Instance bterm_eqdecision `{EqDecision A} : EqDecision (bterm A).
+Proof. solve_decision. Qed.
+Global Instance bterm_countable : Countable (bterm nat).
+Proof.
+Proof.
+ set (enc :=
+   fix go T :=
+     match T with
+     | Var x => (GenLeaf x : gen_tree nat)
+     | TComma T1 T2 => GenNode 0 [go T1; go T2]
+     | TSemic T1 T2 => GenNode 1 [go T1; go T2]
+     end).
+ set (dec :=
+   fix go e :=
+     match (e : gen_tree nat) with
+     | GenLeaf x => Var x
+     | GenNode 0 [e1; e2] => TComma (go e1) (go e2)
+     | GenNode 1 [e1; e2] => TSemic (go e1) (go e2)
+     | _ => Var 0
+     end).
+ apply (inj_countable' enc dec).
+ induction x; simpl; eauto; by rewrite IHx1 IHx2.
+Defined.
+
+Definition list_ap {A B} (fs : list (A → B)) (xs : list A) : list B :=
+  f ← fs;
+  x ← xs;
+  [f x].
+
+Section gset_ap.
+  Context {A B C : Type}.
+  Context `{!EqDecision A, !Countable A, !EqDecision B, !Countable B}.
+  Context `{!EqDecision C, !Countable C}.
+
+  Definition set_map_2 (f : A → B → C) (X : gset A) (Y : gset B) : gset C :=
+    list_to_set (list_ap (map f (elements X)) (elements Y)).
+  Typeclasses Opaque set_map_2.
+
+  Lemma elem_of_map_2 (f : A → B → C) (X : gset A) (Y : gset B) z :
+    z ∈ set_map_2 f X Y ↔ ∃ x y, z = f x y ∧ x ∈ X ∧ y ∈ Y.
+  Proof.
+    unfold set_map_2. rewrite elem_of_list_to_set.
+    rewrite /list_ap. rewrite list_fmap_bind.
+    rewrite elem_of_list_bind. set_solver.
+  Qed.
+  (* Global Instance set_unfold_map (f : A → B) (X : C) (P : A → Prop) y : *)
+  (*   (∀ x, SetUnfoldElemOf x X (P x)) → *)
+  (*   SetUnfoldElemOf y (set_map (D:=D) f X) (∃ x, y = f x ∧ P x). *)
+  (* Proof. constructor. rewrite elem_of_map; naive_solver. Qed. *)
+
+
+End gset_ap.
+
+Global Instance: Params (@set_map_2) 12 := {}.
+
+Fixpoint bterm_gset_fold (T : bterm (gset nat)) : gset (bterm nat) :=
+  match T with
+  | Var X => set_map Var X
+  | TComma T1 T2 =>
+      let S1 := bterm_gset_fold T1 in
+      let S2 := bterm_gset_fold T2 in
+      set_map_2 TComma S1 S2
+  | TSemic T1 T2 =>
+      let S1 := bterm_gset_fold T1 in
+      let S2 := bterm_gset_fold T2 in
+      set_map_2 TSemic S1 S2
+  end.
+
+Definition bterm_gset_fmap (f : nat → nat) (T : bterm (gset nat)) : bterm (gset nat) :=
+  (λ X, set_map f X) <$> T.
+Lemma bterm_gset_fold_fmap (f : nat → nat) (T : bterm (gset nat)) (T' : bterm nat) :
+  T' ∈ bterm_gset_fold T → (f <$> T') ∈ (bterm_gset_fold (bterm_gset_fmap f T)).
+Proof.
+  revert T'; induction T as [X|T1 HT1 T2 HT2|T1 HT1 T2 HT2]=> T' /=.
+  - rewrite elem_of_map.
+    intros [x [-> Hx]]. simpl.
+    rewrite elem_of_map. exists (f x).
+    rewrite elem_of_map. eauto.
+  - rewrite elem_of_map_2.
+    intros (T1' & T2' & -> & HT1' & HT2').
+    apply elem_of_map_2. exists (f <$> T1'),(f <$> T2').
+    naive_solver.
+  - rewrite elem_of_map_2.
+    intros (T1' & T2' & -> & HT1' & HT2').
+    apply elem_of_map_2. exists (f <$> T1'),(f <$> T2').
+    naive_solver.
+Qed.
+Lemma bterm_gset_fold_fmap_inv (f : nat → gset nat) (T T' : bterm nat) :
+  linear_bterm T →
+  T' ∈ bterm_gset_fold (f <$> T) → ∃ (g : nat → nat), (∀ i, i ∈ term_fv T → g i ∈ f i) ∧ T' = g <$> T.
+Proof.
+  revert T'. induction T as [x|T1 HT1 T2 HT2|T1 HT1 T2 HT2]=> T' Hlin /=.
+  - rewrite elem_of_map. intros [y [-> Hy]]. exists (const y). split; eauto.
+    intros i. simpl. rewrite elem_of_singleton. naive_solver.
+  - rewrite elem_of_map_2.
+    intros (T1' & T2' & -> & HT1' & HT2').
+    destruct Hlin as [Hfv [Hlin1 Hlin2]].
+    destruct (HT1 _ Hlin1 HT1') as [g1 [Hg1 ->]].
+    destruct (HT2 _ Hlin2 HT2') as [g2 [Hg2 ->]].
+    exists (λ i, match (decide (i ∈ term_fv T1)) with left _ => g1 i | right _ => g2 i end).
+    split.
+    { intros i. rewrite elem_of_union. intros [Hi1 | Hi2].
+      - rewrite decide_True //. eauto.
+      - rewrite decide_False //.
+        { intros ?. specialize (Hfv i). naive_solver. }
+        by apply Hg2. }
+Admitted.
 
 Section linearize_bterm_properties.
   Context {PROP : bi}.
@@ -340,10 +448,19 @@ Section linearize_bterm_properties.
   Definition set_disj Xs (s : gset nat) := set_fold (mk_or Xs) False%I s.
   Local Instance set_disj_proper Xs : Proper ((≡) ==> (≡)) (set_disj Xs).
   Proof. Admitted.
+  Local Instance set_disj_mono Xs : Proper ((⊆) ==> (⊢)) (set_disj Xs).
+  Proof. Admitted.
   Definition disj_ren_inverse Xs : nat → PROP := λ n, set_disj Xs (ren_inverse n).
 
+  Definition transform_premise (Tz : bterm nat) : gset (bterm nat).
+  Proof.
+    refine (let Tn' := linearize_bterm Tz in _).
+    refine (let T'' := bterm_fmap _ _ (λ j, ren_inverse (linearize_bterm_ren Tz !!! j)) Tn' in _).
+    apply (bterm_gset_fold T'').
+  Defined.
+
   Lemma linearize_bterm_act Xs :
-    bterm_alg_act (linearize_bterm T) Xs ≡ bterm_alg_act T (disj_ren_inverse Xs).
+    bterm_alg_act (linearize_bterm T) Xs ⊢ bterm_alg_act T (disj_ren_inverse Xs).
   Proof.
     rewrite /disj_ren_inverse /ren_inverse /linearize_bterm_ren /linearize_bterm.
     generalize 0.
@@ -366,8 +483,142 @@ Section linearize_bterm_properties.
       { apply map_disjoint_dom_2. rewrite Hm1 Hm2.
         set_unfold. lia. }
       f_equiv.
-      { rewrite IHT1 /=. apply bterm_alg_act_fv.
-        intros j Hj. f_equiv. Abort.
+      { rewrite IHT1 /=.
+        apply bterm_alg_act_mono=>j.
+        apply set_disj_mono=>k.
+        rewrite !preimage_set_eq. admit. }
+      { rewrite IHT2 /=.
+        apply bterm_alg_act_mono=>j.
+        apply set_disj_mono=>k.
+        rewrite !preimage_set_eq. admit. }
+  Admitted.
+
+  Lemma bterm_alg_act_renaming'' Tz Xs :
+    bterm_alg_act Tz (linearize_bterm_ren_act Xs) ≡ bterm_alg_act ((λ n, linearize_bterm_ren T !!! n) <$> Tz) Xs.
+  Proof.
+    rewrite /linearize_bterm_ren_act.
+    induction Tz as [x | T1 IHT1 T2 IHT2 | T1 IHT1 T2 IHT2 ]; eauto; simpl; by f_equiv.
+  Qed.
+
+  Lemma ren_ren_inverse i j :
+    j ∈ ren_inverse i → linearize_bterm_ren T !!! j = i.
+  Proof.
+    rewrite /ren_inverse. rewrite preimage_set_eq.
+    apply lookup_total_correct.
+  Qed.
+  (* Lemma ren_inverse_ren i j : *)
+  (*   linearize_bterm_ren T !!! j = i → j ∈ ren_inverse i. *)
+  (* Proof. *)
+  (*   rewrite /ren_inverse. rewrite preimage_set_eq. *)
+  (*   intros <-. apply lookup_lookup_total. *)
+  (* Qed. *)
+
+
+  Lemma elem_of_map_ren_ren_inverse x y :
+    y ∈ (set_map (C:=gset nat) (λ n, linearize_bterm_ren T !!! n) (ren_inverse x) : gset nat) → y = x.
+  Proof.
+    rewrite elem_of_map.
+    intros [z [-> Hz]]. by apply ren_ren_inverse.
+  Qed.
+
+  Lemma transformed_premise_act_ren Tz' Tz Xs :
+    Tz' ∈ transform_premise Tz → bterm_alg_act Tz' (linearize_bterm_ren_act Xs) ≡ bterm_alg_act Tz Xs.
+  Proof.
+    rewrite /transform_premise.
+    intros H1.
+    apply (bterm_gset_fold_fmap (λ n, linearize_bterm_ren T !!! n)) in H1.
+    revert H1.
+    rewrite /bterm_gset_fmap.
+    rewrite -(bterm_fmap_compose (λ j : nat, ren_inverse (linearize_bterm_ren Tz !!! j))).
+    rewrite bterm_alg_act_renaming''.
+    intros H1. f_equiv.
+    revert H1.
+    pose (Tz'' := (λ n, linearize_bterm_ren T !!! n) <$> Tz').
+    fold Tz''. intros HTz''.
+    assert (Tz'' ∈ bterm_gset_fold
+                ((λ j : nat, set_map (λ n, linearize_bterm_ren T !!! n) (ren_inverse (linearize_bterm_ren Tz !!! j))) <$> linearize_bterm Tz)) as HH.
+    {  apply HTz''. }
+    clear HTz''.
+    apply bterm_gset_fold_fmap_inv in HH; last first.
+    { apply linearize_pre_linear. }
+    destruct HH as [g [Hg ->]].
+    assert (∀ i : nat,
+           i ∈ term_fv (linearize_bterm Tz)
+         → g i = (linearize_bterm_ren Tz !!! i)) as HHH.
+    { intros i Hi. apply elem_of_map_ren_ren_inverse.
+      by eapply Hg. }
+    clear Hg. revert HHH.
+    rewrite /(linearize_bterm_ren Tz) /(linearize_bterm Tz).
+    generalize 0.
+    induction Tz as [x | T1 IHT1 T2 IHT2 | T1 IHT1 T2 IHT2 ]=>i; simpl.
+    - intros H1. f_equiv.
+      etrans. { apply H1. by apply elem_of_singleton. }
+      apply lookup_total_singleton.
+    - intros H1.
+      specialize (IHT1 i).
+      destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
+      specialize (IHT2 i1).
+      destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2.
+      assert (term_fv T1' ⊆ set_seq i (i1-i)).
+      { replace T1' with (snd (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_fv. }
+      assert (term_fv T2' ⊆ set_seq i1 (i2-i1)).
+      { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_fv. }
+      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_dom. }
+      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_dom. }
+      simpl. f_equiv.
+      { apply IHT1. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
+        - apply H1. set_solver.
+        - rewrite !lookup_total_alt. f_equiv.
+          apply lookup_union_l.
+          apply elem_of_dom. rewrite Hm1. naive_solver. }
+      { apply IHT2. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
+        - apply H1. set_solver.
+        - rewrite !lookup_total_alt. f_equiv.
+          apply lookup_union_r. apply not_elem_of_dom.
+          rewrite Hm1. set_unfold. naive_solver lia. }
+    - intros H1.
+      specialize (IHT1 i).
+      destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
+      specialize (IHT2 i1).
+      destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2.
+      assert (term_fv T1' ⊆ set_seq i (i1-i)).
+      { replace T1' with (snd (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_fv. }
+      assert (term_fv T2' ⊆ set_seq i1 (i2-i1)).
+      { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_fv. }
+      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_dom. }
+      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_dom. }
+      simpl. f_equiv.
+      { apply IHT1. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
+        - apply H1. set_solver.
+        - rewrite !lookup_total_alt. f_equiv.
+          apply lookup_union_l.
+          apply elem_of_dom. rewrite Hm1. naive_solver. }
+      { apply IHT2. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
+        - apply H1. set_solver.
+        - rewrite !lookup_total_alt. f_equiv.
+          apply lookup_union_r. apply not_elem_of_dom.
+          rewrite Hm1. set_unfold. naive_solver lia. }
+  Qed.
 
   Lemma linearize_bterm_act_ren Xs:
     bterm_alg_act (linearize_bterm T) (linearize_bterm_ren_act Xs) ≡ bterm_alg_act T Xs.
@@ -444,9 +695,69 @@ Section linearize_bterm_properties.
 
 End linearize_bterm_properties.
 
-(* Definition t0 := (TSemic (TComma (Var 0) (Var 0)) (Var 1)). *)
-(* Eval compute in t0. *)
+
+(* Definition t0 := (TSemic (TComma (Var 1) (Var 1)) (Var 2)). *)
+(* Definition t1 := (TSemic (TComma (Var 1) (Var 2)) (Var 2)). *)
 (* Eval compute in (linearize_bterm t0). *)
+(* Eval vm_compute in (elements $ ren_inverse t0 0). *)
+(* Eval vm_compute in (elements $ transform_premise t0 t1). *)
+
+Definition structural_rule := (list (bterm nat) * bterm nat)%type.
+
+Definition analytic_completion (s : structural_rule) : structural_rule :=
+  let '(Ts,T) := s in
+  (mjoin $ map (elements ∘ (transform_premise T)) Ts, linearize_bterm T).
+
+(* restricted form of weakening: [a ∗ a ≤ a]
+   and it's analytic presentation [a₁ * a₂ ≤ a₁ ∨ a₂] *)
+Definition rule_restr_weakn : structural_rule := ([Var 0], TComma (Var 0) (Var 0)).
+Definition rule_restr_weakn_a := analytic_completion rule_restr_weakn.
+Eval vm_compute in rule_restr_weakn_a.
+
+Definition rule_valid (s : structural_rule) (PROP : bi) : Prop :=
+  let '(Ts, T) := s in
+  ∀ (Xs : nat → PROP),
+    bterm_alg_act T Xs ⊢
+       ∃ Ti' : {Ti : bterm nat | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
+
+Lemma analytic_completion_valid (s : structural_rule) (PROP : bi) :
+  rule_valid (analytic_completion s) PROP → rule_valid s PROP.
+Proof.
+  destruct s as [Ts T].
+  rewrite /rule_valid /=. intros H1 Xs.
+  rewrite -linearize_bterm_act_ren.
+  rewrite H1. apply bi.exist_elim=>Ti.
+  destruct Ti as [Ti HTi]. simpl.
+  apply elem_of_list_join in HTi.
+  destruct HTi as [L [HTi HL]].
+  apply elem_of_list_fmap_2 in HL.
+  destruct HL as [Tz [-> HTz]].
+  apply (bi.exist_intro' _ _  (Tz ↾ HTz)).
+  simpl in *. apply elem_of_elements in HTi.
+  eapply transformed_premise_act_ren in HTi.
+  by rewrite HTi.
+Qed.
+
+Lemma analytic_completion_complete (s : structural_rule) (PROP : bi) :
+  rule_valid s PROP → rule_valid (analytic_completion s) PROP.
+Proof.
+  destruct s as [Ts T].
+  rewrite /rule_valid /=. intros H1 Xs.
+  rewrite linearize_bterm_act.
+  rewrite H1. apply bi.exist_elim=>Ti.
+  destruct Ti as [Ti HTi]. simpl.
+  remember (transform_premise T Ti) as Tzs.
+  assert (∃ Tz, Tz ∈ transform_premise T Ti) as [Tz HTz].
+  { admit. (* this is not actually true .. *) }
+  assert (Tz ∈ mjoin (map (elements ∘ transform_premise T) Ts)) as HTz'.
+  { admit. }
+  apply (bi.exist_intro' _ _  (Tz ↾ HTz')).
+  simpl in *.
+  eapply transformed_premise_act_ren in HTz.
+  rewrite -HTz.
+  admit.
+Abort.
+
 
 (** Interpretation of bunches is a homomorphism w.r.t. bunched terms:
 <<
