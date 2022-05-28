@@ -9,7 +9,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'coqorg/coq:dev'
           - 'coqorg/coq:8.15'
           - 'coqorg/coq:8.14'
       max-parallel: 4
