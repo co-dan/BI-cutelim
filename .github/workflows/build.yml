@@ -11,6 +11,8 @@ jobs:
         coq_version:
           - '8.15'
           # - 'dev'
+        ocaml_version:
+          - '4.14-flambda'
       max-parallel: 4
       fail-fast: false
 
