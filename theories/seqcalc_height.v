@@ -11,7 +11,7 @@ From bunched Require Import seqcalc bunch_decomp.
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).
 
-Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
+Module SeqcalcHeight(R : ANALYTIC_STRUCT_EXT).
   Import R.
   Module S := Seqcalc(R).
   Import S.
@@ -594,7 +594,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -884,7 +884,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -1173,7 +1173,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts, T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -1462,7 +1462,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
