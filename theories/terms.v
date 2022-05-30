@@ -399,29 +399,14 @@ Qed.
 (** ** term folding properties *)
 Lemma bterm_gset_fold_fmap (f : nat → nat) (T : bterm (gset nat)) (T' : bterm nat) :
   T' ∈ bterm_gset_fold T → f <$> T' ∈ (bterm_gset_fold (bterm_gset_fmap f T)).
-Proof.
-  revert T'; induction T as [X|T1 HT1 T2 HT2|T1 HT1 T2 HT2]=> T' /=.
-  - rewrite elem_of_map.
-    intros [x [-> Hx]]. simpl.
-    rewrite elem_of_map. exists (f x).
-    rewrite elem_of_map. eauto.
-  - rewrite sets.elem_of_map_2.
-    intros (T1' & T2' & -> & HT1' & HT2').
-    apply sets.elem_of_map_2. exists (f <$> T1'),(f <$> T2').
-    naive_solver.
-  - rewrite sets.elem_of_map_2.
-    intros (T1' & T2' & -> & HT1' & HT2').
-    apply sets.elem_of_map_2. exists (f <$> T1'),(f <$> T2').
-    naive_solver.
-Qed.
+Proof. revert T'; induction T=> T' /=; set_solver. Qed.
 Lemma bterm_gset_fold_fmap_inv (f : nat → gset nat) (T T' : bterm nat) :
   linear_bterm T →
   T' ∈ bterm_gset_fold (f <$> T) → ∃ (g : nat → nat), (∀ i, i ∈ term_fv T → g i ∈ f i) ∧ T' = g <$> T.
 Proof.
   revert T'. induction T as [x|T1 HT1 T2 HT2|T1 HT1 T2 HT2]=> T' Hlin /=.
-  - rewrite elem_of_map. intros [y [-> Hy]]. exists (const y). split; eauto.
-    intros i. simpl. rewrite elem_of_singleton. naive_solver.
-  - rewrite sets.elem_of_map_2.
+  - rewrite elem_of_map. intros [y [-> Hy]]. exists (const y). set_solver.
+  - rewrite sets.elem_of_set_map_2.
     intros (T1' & T2' & -> & HT1' & HT2').
     destruct Hlin as [Hfv [Hlin1 Hlin2]].
     destruct (HT1 _ Hlin1 HT1') as [g1 [Hg1 Hg1']].
@@ -441,7 +426,7 @@ Proof.
       apply bterm_fmap_ext; auto.
       intros x Hx. assert (x ∉ term_fv T1) by set_solver.
       rewrite decide_False //. }
-  - rewrite sets.elem_of_map_2.
+  - rewrite sets.elem_of_set_map_2.
     intros (T1' & T2' & -> & HT1' & HT2').
     destruct Hlin as [Hfv [Hlin1 Hlin2]].
     destruct (HT1 _ Hlin1 HT1') as [g1 [Hg1 Hg1']].

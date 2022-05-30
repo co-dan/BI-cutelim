@@ -135,8 +135,7 @@ Section analytic_completion_correct.
     induction Tz as [x | T1 IHT1 T2 IHT2 | T1 IHT1 T2 IHT2 ]=>idx; simpl.
     - apply bi.exist_elim=>k. apply bi.pure_elim_l=>Hk.
       apply (bi.exist_intro' _ _ (Var k)). apply bi.and_intro; eauto.
-      apply bi.pure_intro.
-      eapply fin_sets.elem_of_map_2. by rewrite lookup_total_singleton.
+      apply bi.pure_intro. eapply elem_of_map_2. by rewrite lookup_total_singleton.
     - specialize (IHT1 idx).
       destruct (linearize_pre T1 idx) as [[idx1 m1] T1'] eqn:Ht1.
       specialize (IHT2 idx1).
@@ -171,7 +170,7 @@ Section analytic_completion_correct.
       apply bi.pure_elim_l=>Hk2. rewrite comm.
       apply (bi.exist_intro' _ _ (TComma Tk1 Tk2)). apply bi.and_intro; simpl; last by f_equiv.
       apply bi.pure_intro.
-      apply sets.elem_of_map_2. eexists _,_. repeat split; eauto.
+      apply sets.elem_of_set_map_2. eexists _,_. repeat split; eauto.
       + simpl in Hk1.
         enough ((λ j : nat, ren_inverse !!! (m1 !!! j)) <$> T1' = ((λ j : nat, ren_inverse !!! ((m1 ∪ m2) !!! j)) <$> T1'))
           as <-; first done.
@@ -220,7 +219,7 @@ Section analytic_completion_correct.
       apply bi.pure_elim_l=>Hk2. rewrite comm.
       apply (bi.exist_intro' _ _ (TSemic Tk1 Tk2)). apply bi.and_intro; simpl; last by f_equiv.
       apply bi.pure_intro.
-      apply sets.elem_of_map_2. eexists _,_. repeat split; eauto.
+      apply sets.elem_of_set_map_2. eexists _,_. repeat split; eauto.
       + simpl in Hk1.
         enough ((λ j : nat, ren_inverse !!! (m1 !!! j)) <$> T1' = ((λ j : nat, ren_inverse !!! ((m1 ∪ m2) !!! j)) <$> T1'))
           as <-; first done.

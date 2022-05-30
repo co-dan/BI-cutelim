@@ -123,30 +123,69 @@ End preimage.
 
 (** * [set_map_2] *)
 
-Definition list_ap {A B} (fs : list (A → B)) (xs : list A) : list B :=
-  f ← fs;
-  x ← xs;
-  [f x].
+Definition set_bind `{Elements A SA, Empty SB, Union SB}
+    (f : A → SB) (X : SA) : SB :=
+  ⋃ (f <$> elements X).
 
-Section gset_ap.
+Section set_bind.
+  Context `{FinSet A SA, FinSet B SB}.
+
+  Local Notation set_bind := (set_bind (A:=A) (SA:=SA) (SB:=SB)).
+
+ Lemma set_bind_ext (f g : A → SB) X Y :
+    (∀ x, f x ≡ g x) → X ≡ Y → set_bind f X ≡ set_bind g Y.
+  Proof.
+    intros Hfg HXY b. unfold set_bind.
+    rewrite !elem_of_union_list.
+    set_solver.
+  Qed.
+
+  Global Instance set_bind_proper : Proper (pointwise_relation _ (≡) ==> (≡) ==> (≡)) set_bind.
+  Proof. intros f1 f2 Hf X1 X2 HX. by apply set_bind_ext. Qed.
+
+  Lemma elem_of_set_bind (f : A → SB) X y :
+    y ∈ set_bind f X ↔ ∃ x, x ∈ X ∧ y ∈ f x.
+  Proof. unfold set_bind. rewrite !elem_of_union_list. set_solver. Qed.
+
+  Global Instance set_unfold_set_bind (f : A → SB) X y P Q :
+    (∀ x y, SetUnfoldElemOf y (f x) (P x y)) →
+    (∀ x, SetUnfoldElemOf x X (Q x)) →
+    SetUnfoldElemOf y (set_bind f X) (∃ x, Q x ∧ P x y).
+  Proof.
+    intros HSU1 HSU2. constructor.
+    rewrite elem_of_set_bind. set_solver.
+  Qed.
+
+  Global Instance set_bind_subset f : Proper ((⊆) ==> (⊆)) (set_bind f).
+  Proof. intros X Y HXY. set_solver. Qed.
+
+  Lemma set_bind_singleton f x :
+    set_bind f {[x]} ≡ f x.
+  Proof. set_solver. Qed.
+
+  Lemma set_bind_disj_union f X Y :
+    X ## Y → set_bind f (X ∪ Y) ≡ set_bind f X ∪ set_bind f Y.
+  Proof. set_solver. Qed.
+End set_bind.
+
+
+
+Section set_map_2.
   Context {A B C : Type}.
   Context `{!EqDecision A, !Countable A, !EqDecision B, !Countable B}.
   Context `{!EqDecision C, !Countable C}.
 
-  Definition set_map_2 (f : A → B → C) (X : gset A) (Y : gset B) : gset C :=
-    list_to_set (list_ap (map f (elements X)) (elements Y)).
+  Definition set_map_2 `{Elements A SA, Elements B SB, Singleton C SC, Empty SC, Union SC}
+    (f : A → B → C) (X : SA) (Y : SB) : SC :=
+    set_bind (λ x, set_bind (λ y, {[ f x y ]} ) Y) X.
   Typeclasses Opaque set_map_2.
 
-  Lemma elem_of_map_2 (f : A → B → C) (X : gset A) (Y : gset B) z :
-    z ∈ set_map_2 f X Y ↔ ∃ x y, z = f x y ∧ x ∈ X ∧ y ∈ Y.
-  Proof.
-    unfold set_map_2. rewrite elem_of_list_to_set.
-    unfold list_ap. rewrite list_fmap_bind.
-    rewrite elem_of_list_bind. set_solver.
-  Qed.
-  (* Global Instance set_unfold_map (f : A → B) (X : C) (P : A → Prop) y : *)
-  (*   (∀ x, SetUnfoldElemOf x X (P x)) → *)
-  (*   SetUnfoldElemOf y (set_map (D:=D) f X) (∃ x, y = f x ∧ P x). *)
-  (* Proof. constructor. rewrite elem_of_map; naive_solver. Qed. *)
-End gset_ap.
-Global Instance: Params (@set_map_2) 12 := {}.
+  Lemma elem_of_set_map_2 (f : A → B → C) (X : gset A) (Y : gset B) (z : C) :
+    z ∈ (set_map_2 f X Y : gset C) ↔ ∃ x y, z = f x y ∧ x ∈ X ∧ y ∈ Y.
+  Proof. unfold set_map_2. set_solver. Qed.
+  Global Instance set_unfold_map (f : A → B → C) (X : gset A) (Y : gset B) (z : C) P Q :
+    (∀ x, SetUnfoldElemOf x X (P x)) →
+    (∀ y, SetUnfoldElemOf y Y (Q y)) →
+    SetUnfoldElemOf z (set_map_2 (SC:=gset C) f X Y) (∃ x y, z = f x y ∧ P x ∧ Q y).
+  Proof. intros ? ?. constructor. rewrite elem_of_set_map_2; set_solver. Qed.
+End set_map_2.
