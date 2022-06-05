@@ -2,6 +2,7 @@
 -arg "-w" -arg "-notation-overridden"
 
 theories/prelude/sets.v
+theories/prelude/lists.v
 
 theories/algebra/notation.v
 theories/algebra/interface.v

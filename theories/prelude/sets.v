@@ -189,3 +189,4 @@ Section set_map_2.
     SetUnfoldElemOf z (set_map_2 (SC:=gset C) f X Y) (∃ x y, z = f x y ∧ P x ∧ Q y).
   Proof. intros ? ?. constructor. rewrite elem_of_set_map_2; set_solver. Qed.
 End set_map_2.
+
