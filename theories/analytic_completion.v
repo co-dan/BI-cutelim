@@ -5,7 +5,7 @@ From bunched Require Import syntax interp prelude.sets terms.
 From stdpp Require Import prelude base gmap fin_sets.
 
 Section analytic_completion.
-  (** We start with an arbitrary structural rule (Ts, T) *)
+  (** We start with an arbitrary structural rule [(Ts, T)] *)
   Variable (s : structural_rule).
 
   Definition ren_inverse : gmap nat (gset nat) := map_preimage (linearize_bterm_ren (snd s)).
@@ -119,14 +119,6 @@ Section analytic_completion_correct.
     induction Tz as [x | T1 IHT1 T2 IHT2 | T1 IHT1 T2 IHT2 ]; eauto; simpl; by f_equiv.
   Qed.
 
-  (* TODO move this somewhere? *)
-  Local Lemma pure_left_absorb (φ : Prop) (Q : PROP) :
-      (⌜ φ ⌝ ∗ Q) ⊢ ⌜ φ ⌝.
-  Proof.
-    apply bi.wand_elim_l'. apply bi.pure_elim'=>Hϕ.
-    apply bi.wand_intro_l. by apply bi.pure_intro.
-  Qed.
-
   Lemma bterm_alg_act_disj_ren_inverse_transform Tz Xs :
     bterm_alg_act Tz (disj_ren_inverse Xs) -∗ ∃ Tk, ⌜Tk ∈ transform_premise Tz⌝ ∧ bterm_alg_act Tk Xs.
   Proof.
@@ -163,10 +155,10 @@ Section analytic_completion_correct.
         apply linearize_pre_fv. }
 
       rewrite IHT1 . rewrite bi.sep_exist_r. apply bi.exist_elim=>Tk1.
-      rewrite bi.sep_and_r. rewrite pure_left_absorb.
+      rewrite bi.sep_and_r. rewrite bi.pure_sep_l.
       apply bi.pure_elim_l=>Hk1.
       rewrite IHT2. rewrite comm. rewrite bi.sep_exist_r. apply bi.exist_elim=>Tk2.
-      rewrite bi.sep_and_r. rewrite pure_left_absorb.
+      rewrite bi.sep_and_r. rewrite bi.pure_sep_l.
       apply bi.pure_elim_l=>Hk2. rewrite comm.
       apply (bi.exist_intro' _ _ (TComma Tk1 Tk2)). apply bi.and_intro; simpl; last by f_equiv.
       apply bi.pure_intro.
