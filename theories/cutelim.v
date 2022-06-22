@@ -5,9 +5,8 @@ From bunched.algebra Require Import bi from_monoid from_closure.
 From bunched Require Import seqcalc seqcalc_height interp terms syntax.
 
 (** * Parameters to the proof: a list of simple structural extensions *)
-Parameter rules : list (list (bterm nat) * bterm nat).
-Parameter rules_good : forall (Ts : list (bterm nat)) (T : bterm nat),
-    (Ts, T) ∈ rules → linear_bterm T.
+Parameter rules : list structural_rule.
+Parameter rules_good : ∀ s, s ∈ rules → is_analytical s.
 
 Module M.
   Definition bterm := bterm nat.
@@ -479,7 +478,7 @@ Proof.
   { apply bterm_alg_act_mono.
     intros i. apply cl_unit. }
   assert (linear_bterm T) as Hlin.
-  { eapply rules_good; eauto. }
+  { by eapply (rules_good (Ts,T)). }
   rewrite blinterm_C_desc //.
   apply cl_adj. { apply _. }
   rewrite /bi_exist /=.

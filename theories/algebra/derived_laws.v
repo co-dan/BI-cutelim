@@ -536,6 +536,13 @@ Proof.
     by apply impl_intro_r.
 Qed.
 
+Lemma pure_sep_l (φ : Prop) (Q : PROP) :
+  (⌜ φ ⌝ ∗ Q) ⊢ ⌜ φ ⌝.
+Proof.
+  apply wand_elim_l'. apply pure_elim'=>Hϕ.
+  apply wand_intro_l. by apply pure_intro.
+Qed.
+
 End derived.
 
 End bi.

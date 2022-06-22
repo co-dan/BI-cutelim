@@ -1,17 +1,17 @@
 (* Sequent calculus with upper bounds on proof size.
    Useful for doing induction on.
 
-   The main purpose this file is to provide the inversion lemmas (at the very bottom of the file).
+   The main purpose this file is to provide the inversion lemmas (see the bottom part of the file).
  *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
 From bunched.algebra Require Import bi.
-From bunched Require Import seqcalc bunch_decomp.
+From bunched Require Import seqcalc bunch_decomp prelude.lists.
 
 Reserved Notation "P ⊢ᴮ{ n } Q" (at level 99, n, Q at level 200, right associativity).
 Reserved Notation "Δ =?{ n } Δ'" (at level 99, n at level 200).
 
-Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
+Module SeqcalcHeight(R : ANALYTIC_STRUCT_EXT).
   Import R.
   Module S := Seqcalc(R).
   Import S.
@@ -357,59 +357,16 @@ Module SeqcalcHeight(R : SIMPLE_STRUCT_EXT).
   Lemma provesN_proves n Δ ϕ :
     (Δ ⊢ᴮ{ n } ϕ) → Δ ⊢ᴮ ϕ.
   Proof.
-    induction 1; eauto.
-    (* TODO: what is going on here?
-       all: by econstructor; eauto *)
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
-    by econstructor; eauto.
+    induction 1; try by econstructor; eauto.
+    (* XXX: somehow, [try] is really needed here ^ *)
   Qed.
 
-(* TODO: move to std++ *)
-Lemma Forall_exists_witness A B : forall (P : A → B → Prop) l,
-      Forall (fun y => exists x, P x y) l <-> exists l',
-        length l' = length l ∧
-        Forall (fun '(x, y) => P x y) (zip l' l).
-Proof.
-  induction l as [|a l IHl]; split; intros HF.
-  - exists nil. split; auto. constructor.
-  - constructor.
-  - inversion_clear HF as [| y ? [x Hx] HFtl]; subst.
-    destruct (proj1 IHl HFtl) as [l' [? Heq]]; subst.
-    exists (x :: l'). split; simpl; first by f_equiv.
-    by constructor.
-  - destruct HF as [l' [Heq IH]].
-    destruct l' as [|b l'].
-    { simpl in Heq. inversion Heq. }
-    simpl in IH. inversion IH; simplify_eq/=.
-    econstructor; eauto.
-    apply IHl. eexists; eauto.
-Qed.
-
-Lemma proves_le n m Δ ϕ :
-  n ≤ m → (Δ ⊢ᴮ{n} ϕ) → Δ ⊢ᴮ{m} ϕ.
-Proof.
-  induction 1; auto.
-  intros H1. eapply BI_Higher. eauto.
-Qed.
+  Lemma proves_le n m Δ ϕ :
+    n ≤ m → (Δ ⊢ᴮ{n} ϕ) → Δ ⊢ᴮ{m} ϕ.
+  Proof.
+    induction 1; auto.
+    intros H1. eapply BI_Higher. eauto.
+  Qed.
 
   Lemma proves_provesN Δ ϕ :
     (Δ ⊢ᴮ ϕ) → ∃ n, Δ ⊢ᴮ{n} ϕ.
@@ -421,25 +378,20 @@ Qed.
     all: try by eexists; econstructor; eauto.
     (* The worst case: simple structural rules *)
     apply (Forall_forall (λ Ti, ∃ n : nat, fill Π (bterm_ctx_act Ti Δs) ⊢ᴮ{ n} ϕ)) in H1.
-    apply Forall_exists_witness in H1.
-    destruct H1 as (ns & Hns & HTs).
+    apply Forall_exists_Forall2 in H1.
+    destruct H1 as (ns & Hns).
     exists (S (max_list ns)).
     eapply BI_Simple_Ext; eauto.
     intros Ti HTi.
-    revert HTs. rewrite Forall_forall. intros HTs.
     destruct (elem_of_list_lookup_1 _ _ HTi) as [i Hi].
     destruct (ns !! i) as [n|] eqn:Hn; last first.
-    { exfalso.
-      apply lookup_lt_Some in Hi.
-      apply lookup_ge_None_1 in Hn. lia. }
-    assert ((n, Ti) ∈ zip ns Ts) as Hni.
-    { eapply elem_of_list_lookup_2.
-      rewrite lookup_zip_with_Some. do 2 eexists.
-      eauto. }
-    specialize (HTs _ Hni). simpl in HTs.
-    eapply proves_le; last eauto.
-    eapply max_list_elem_of_le.
-    by eapply elem_of_list_lookup_2.
+    { eapply Forall2_lookup_r in Hns; eauto.
+      naive_solver. }
+    eapply (proves_le n). {
+      eapply max_list_elem_of_le.
+      by eapply elem_of_list_lookup_2.
+    }
+    eapply Forall2_lookup_lr in Hns; eauto.
   Qed.
 
   (** * Inversion lemmas *)
@@ -594,7 +546,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -884,7 +836,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -1173,7 +1125,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts, T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -1462,7 +1414,7 @@ Qed.
         apply bunch_decomp_correct in HC0.
         simplify_eq/=.
         apply bterm_ctx_act_decomp in HC0; last first.
-        { by eapply rules_good. }
+        { by eapply (rules_good (Ts,T)). }
         destruct HC0 as (j & Π₀ & Hjfv & Hj & HC0).
         rewrite fill_app -HC0.
         eapply BI_Simple_Ext; eauto.
@@ -1667,66 +1619,65 @@ Qed.
         apply bunch_decomp_correct. apply Hdec0.
   Qed.
 
-(** Derivable rules / inversion lemmas *)
-Lemma impl_r_inv Δ ϕ ψ :
-  (Δ ⊢ᴮ IMPL ϕ ψ) →
-  (Δ ;, frml ϕ ⊢ᴮ ψ)%B.
-Proof.
-  intros [n H]%proves_provesN.
-  eapply provesN_proves.
-  by apply impl_r_inv'.
-Qed.
-Lemma wand_r_inv Δ ϕ ψ :
-  (Δ ⊢ᴮ WAND ϕ ψ) →
-  (Δ ,, frml ϕ ⊢ᴮ ψ)%B.
-Proof.
-  intros [n H]%proves_provesN.
-  eapply provesN_proves.
-  by apply wand_r_inv'.
-Qed.
-Lemma sep_l_inv C ϕ ψ χ :
-  (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
-  (fill C (frml ϕ,, frml ψ) ⊢ᴮ χ).
-Proof.
-  intros [n H]%proves_provesN.
-  eapply provesN_proves.
-  eapply sep_l_inv'; eauto.
-Qed.
-Lemma conj_l_inv C ϕ ψ χ :
-  (fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
-  (fill C (frml ϕ;, frml ψ) ⊢ᴮ χ).
-Proof.
-  intros [n H]%proves_provesN.
-  eapply provesN_proves.
-  eapply conj_l_inv'; eauto.
-Qed.
-Lemma collapse_l_inv C Δ ϕ :
-  (fill C (frml (collapse Δ)) ⊢ᴮ ϕ) →
-  (fill C Δ ⊢ᴮ ϕ).
-Proof.
-  revert C. induction Δ; simpl; first done.
-  - intros C [n H]%proves_provesN.
+  (** Derivable rules / inversion lemmas *)
+  Lemma impl_r_inv Δ ϕ ψ :
+    (Δ ⊢ᴮ IMPL ϕ ψ) →
+    (Δ ;, frml ϕ ⊢ᴮ ψ)%B.
+  Proof.
+    intros [n H]%proves_provesN.
     eapply provesN_proves.
-    eapply top_l_inv'; eauto.
-  - intros C [n H]%proves_provesN.
+    by apply impl_r_inv'.
+  Qed.
+  Lemma wand_r_inv Δ ϕ ψ :
+    (Δ ⊢ᴮ WAND ϕ ψ) →
+    (Δ ,, frml ϕ ⊢ᴮ ψ)%B.
+  Proof.
+    intros [n H]%proves_provesN.
     eapply provesN_proves.
-    eapply emp_l_inv'; eauto.
-  - intros C H1.
-    replace (fill C (Δ1,, Δ2))%B
-      with (fill (CtxCommaR Δ1::C) Δ2) by reflexivity.
-    apply IHΔ2. simpl.
-    replace (fill C (Δ1,, frml (collapse Δ2)))%B
-      with (fill (CtxCommaL (frml (collapse Δ2))::C) Δ1) by reflexivity.
-    apply IHΔ1. simpl.
-    by apply sep_l_inv.
-  - intros C H1.
-    replace (fill C (Δ1;, Δ2))%B
-      with (fill (CtxSemicR Δ1::C) Δ2) by reflexivity.
-    apply IHΔ2. simpl.
-    replace (fill C (Δ1;, frml (collapse Δ2)))%B
-      with (fill (CtxSemicL (frml (collapse Δ2))::C) Δ1) by reflexivity.
-    apply IHΔ1. simpl.
-    by apply conj_l_inv.
-Qed.
-
+    by apply wand_r_inv'.
+  Qed.
+  Lemma sep_l_inv C ϕ ψ χ :
+    (fill C (frml (SEP ϕ ψ)) ⊢ᴮ χ) →
+    (fill C (frml ϕ,, frml ψ) ⊢ᴮ χ).
+  Proof.
+    intros [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply sep_l_inv'; eauto.
+  Qed.
+  Lemma conj_l_inv C ϕ ψ χ :
+    (fill C (frml (CONJ ϕ ψ)) ⊢ᴮ χ) →
+    (fill C (frml ϕ;, frml ψ) ⊢ᴮ χ).
+  Proof.
+    intros [n H]%proves_provesN.
+    eapply provesN_proves.
+    eapply conj_l_inv'; eauto.
+  Qed.
+  Lemma collapse_l_inv C Δ ϕ :
+    (fill C (frml (collapse Δ)) ⊢ᴮ ϕ) →
+    (fill C Δ ⊢ᴮ ϕ).
+  Proof.
+    revert C. induction Δ; simpl; first done.
+    - intros C [n H]%proves_provesN.
+      eapply provesN_proves.
+      eapply top_l_inv'; eauto.
+    - intros C [n H]%proves_provesN.
+      eapply provesN_proves.
+      eapply emp_l_inv'; eauto.
+    - intros C H1.
+      replace (fill C (Δ1,, Δ2))%B
+        with (fill (CtxCommaR Δ1::C) Δ2) by reflexivity.
+      apply IHΔ2. simpl.
+      replace (fill C (Δ1,, frml (collapse Δ2)))%B
+        with (fill (CtxCommaL (frml (collapse Δ2))::C) Δ1) by reflexivity.
+      apply IHΔ1. simpl.
+      by apply sep_l_inv.
+    - intros C H1.
+      replace (fill C (Δ1;, Δ2))%B
+        with (fill (CtxSemicR Δ1::C) Δ2) by reflexivity.
+      apply IHΔ2. simpl.
+      replace (fill C (Δ1;, frml (collapse Δ2)))%B
+        with (fill (CtxSemicL (frml (collapse Δ2))::C) Δ1) by reflexivity.
+      apply IHΔ1. simpl.
+      by apply conj_l_inv.
+  Qed.
 End SeqcalcHeight.
