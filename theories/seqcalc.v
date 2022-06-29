@@ -1,11 +1,11 @@
-(** Sequent calculus for BI, parameterized by a set of simple structural rules. *)
+(** Sequent calculus for BI, parameterized by a set of structural rules. *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
 From bunched.algebra Require Import bi.
 From bunched Require Export syntax interp terms.
 
-Module Type SIMPLE_STRUCT_EXT.
-(** A _simple structural rule_ is a rule of the form
+Module Type ANALYTIC_STRUCT_EXT.
+(** An _analytic structural rule_ is a rule of the form
 
 <<
       Π(T₁[Δs]) ⊢ ϕ    ...    Π(T[Δs]) ⊢ ϕ
@@ -19,20 +19,22 @@ Module Type SIMPLE_STRUCT_EXT.
 
      We formalize a set of such rules as lists of tuples :
         <<([T₁; ..; T], T)>>.
+
+     Every structural rule can be turned into an equivalent analytic rule.
+     See the modules <<terms.v>> and <<analytic_completion.v>> for the details.
 *)
 
   Definition bterm := bterm nat.
-  Parameter rules : list (list bterm * bterm).
-  Parameter rules_good : ∀ (Ts : list bterm) (T : bterm),
-      (Ts, T) ∈ rules → linear_bterm T.
+  Parameter rules : list structural_rule.
+  Parameter rules_good : ∀ s, s ∈ rules → is_analytical s.
 
-End SIMPLE_STRUCT_EXT.
+End ANALYTIC_STRUCT_EXT.
 
 (** * Sequent calculus *)
 Reserved Notation "P ⊢ᴮ Q" (at level 99, Q at level 200, right associativity).
 
 (** ... parameterized over an arbitrary collection of simple structural rules. *)
-Module Seqcalc (R : SIMPLE_STRUCT_EXT).
+Module Seqcalc (R : ANALYTIC_STRUCT_EXT).
 Import R.
 
 Inductive proves : bunch → formula → Prop :=
