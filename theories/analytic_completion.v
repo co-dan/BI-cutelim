@@ -1,7 +1,7 @@
 (** Analytic completion of a structural rule *)
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
-From bunched Require Import syntax interp prelude.sets terms.
+From bunched Require Import syntax interp terms prelude.sets.
 From stdpp Require Import prelude base gmap fin_sets.
 
 Section analytic_completion.
@@ -58,17 +58,17 @@ Section analytic_completion_correct.
     generalize 0.
     induction T as [x | T1 IHT1 T2 IHT2 | T1 IHT1 T2 IHT2 ]=>i; simpl.
     - apply (bi.exist_intro' _ _ i).
-      rewrite map_preimage_singleton.
-      apply bi.and_intro; eauto. apply bi.pure_intro. rewrite lookup_total_singleton. set_solver.
+      apply bi.and_intro; eauto. apply bi.pure_intro.
+      rewrite lookup_total_preimage. apply lookup_singleton.
     - specialize (IHT1 i).
       destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
       specialize (IHT2 i1).
       destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2. simpl.
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -90,11 +90,11 @@ Section analytic_completion_correct.
       destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
       specialize (IHT2 i1).
       destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2. simpl.
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -133,11 +133,11 @@ Section analytic_completion_correct.
       specialize (IHT2 idx1).
       destruct (linearize_pre T2 idx1) as [[idx2 m2] T2'] eqn:Ht2.
 
-      assert (dom (gset _) m1 = set_seq idx (idx1-idx)) as Hm1.
+      assert (dom m1 = set_seq idx (idx1-idx)) as Hm1.
       { replace idx1 with (fst $ fst (linearize_pre T1 idx)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 idx)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq idx1 (idx2-idx1)) as Hm2.
+      assert (dom m2 = set_seq idx1 (idx2-idx1)) as Hm2.
       { replace idx2 with (fst $ fst (linearize_pre T2 idx1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 idx1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -168,7 +168,7 @@ Section analytic_completion_correct.
           as <-; first done.
         apply bterm_fmap_ext; last done. intros x Hx. f_equiv.
         rewrite !lookup_total_alt. f_equiv.
-        symmetry. apply lookup_union_l. apply elem_of_dom.
+        symmetry. apply lookup_union_l'. apply elem_of_dom.
         set_unfold. naive_solver.
       + simpl in Hk2.
         enough ((λ j : nat, ren_inverse !!! (m2 !!! j)) <$> T2' = ((λ j : nat, ren_inverse !!! ((m1 ∪ m2) !!! j)) <$> T2'))
@@ -182,11 +182,11 @@ Section analytic_completion_correct.
       specialize (IHT2 idx1).
       destruct (linearize_pre T2 idx1) as [[idx2 m2] T2'] eqn:Ht2.
 
-      assert (dom (gset _) m1 = set_seq idx (idx1-idx)) as Hm1.
+      assert (dom m1 = set_seq idx (idx1-idx)) as Hm1.
       { replace idx1 with (fst $ fst (linearize_pre T1 idx)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 idx)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq idx1 (idx2-idx1)) as Hm2.
+      assert (dom m2 = set_seq idx1 (idx2-idx1)) as Hm2.
       { replace idx2 with (fst $ fst (linearize_pre T2 idx1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 idx1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -217,7 +217,7 @@ Section analytic_completion_correct.
           as <-; first done.
         apply bterm_fmap_ext; last done. intros x Hx. f_equiv.
         rewrite !lookup_total_alt. f_equiv.
-        symmetry. apply lookup_union_l. apply elem_of_dom.
+        symmetry. apply lookup_union_l'. apply elem_of_dom.
         set_unfold. naive_solver.
       + simpl in Hk2.
         enough ((λ j : nat, ren_inverse !!! (m2 !!! j)) <$> T2' = ((λ j : nat, ren_inverse !!! ((m1 ∪ m2) !!! j)) <$> T2'))
@@ -281,11 +281,11 @@ Section analytic_completion_correct.
       { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_fv. }
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -293,7 +293,7 @@ Section analytic_completion_correct.
       { apply IHT1. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
         - apply H1. set_solver.
         - rewrite !lookup_total_alt. f_equiv.
-          apply lookup_union_l.
+          apply lookup_union_l'.
           apply elem_of_dom. rewrite Hm1. naive_solver. }
       { apply IHT2. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
         - apply H1. set_solver.
@@ -313,11 +313,11 @@ Section analytic_completion_correct.
       { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_fv. }
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -325,7 +325,7 @@ Section analytic_completion_correct.
       { apply IHT1. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
         - apply H1. set_solver.
         - rewrite !lookup_total_alt. f_equiv.
-          apply lookup_union_l.
+          apply lookup_union_l'.
           apply elem_of_dom. rewrite Hm1. naive_solver. }
       { apply IHT2. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
         - apply H1. set_solver.
@@ -353,11 +353,11 @@ Section analytic_completion_correct.
       { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_fv. }
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -367,7 +367,7 @@ Section analytic_completion_correct.
         intros j Hj.
         assert ((m1 ∪ m2) !!! j = m1 !!! j) as ->; eauto.
         unfold lookup_total, map_lookup_total. f_equiv.
-        apply lookup_union_l, elem_of_dom. rewrite Hm1. set_solver by lia.
+        apply lookup_union_l', elem_of_dom. rewrite Hm1. set_solver by lia.
       + eapply bterm_alg_act_fv.
         intros j Hj.
         assert ((m1 ∪ m2) !!! j = m2 !!! j) as ->; eauto.
@@ -385,11 +385,11 @@ Section analytic_completion_correct.
       { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_fv. }
-      assert (dom (gset _) m1 = set_seq i (i1-i)) as Hm1.
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
       { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
         apply linearize_pre_dom. }
-      assert (dom (gset _) m2 = set_seq i1 (i2-i1)) as Hm2.
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
       { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
         apply linearize_pre_dom. }
@@ -399,7 +399,7 @@ Section analytic_completion_correct.
         intros j Hj.
         assert ((m1 ∪ m2) !!! j = m1 !!! j) as ->; eauto.
         unfold lookup_total, map_lookup_total. f_equiv.
-        apply lookup_union_l, elem_of_dom. rewrite Hm1. set_solver by lia.
+        apply lookup_union_l', elem_of_dom. rewrite Hm1. set_solver by lia.
       + eapply bterm_alg_act_fv.
         intros j Hj.
         assert ((m1 ∪ m2) !!! j = m2 !!! j) as ->; eauto.

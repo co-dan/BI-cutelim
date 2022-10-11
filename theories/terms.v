@@ -329,7 +329,7 @@ Qed.
 Lemma linearize_pre_dom T (idx1 : nat):
   let idx2 := fst $ fst $ linearize_pre T idx1 in
   let m := snd $ fst $ linearize_pre T idx1 in
-  dom (gset nat) m = set_seq idx1 (idx2-idx1).
+  dom m = set_seq idx1 (idx2-idx1).
 Proof.
   revert idx1; induction T=>idx1 /=.
   - set_unfold; lia.
