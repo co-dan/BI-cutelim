@@ -20,6 +20,7 @@ Structure (in the `theories` directory):
 - `algebra/bi.v`, `algebra/interface.v` -- BI algebras
 - `algebra/from_closure.v` -- BI algebra from a closure operator
 - `cutelim.v` -- the universal model for cut elimination
+- `analytic_completion.v` -- the analytic completion for arbitary structural rules
 
 There is also a formalization of the same method but for BI with an S4-like box modality.
 See `seqcalc_s4.v`, `seqcalc_height_s4.v`, `interp_s4.v`, and `cutelim_s4.v` in the `theories` folder.
