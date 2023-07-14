@@ -4,7 +4,7 @@ synopsis: "Semantic proof of cut elimination for the logic of bunched implicatio
 version: "dev"
 maintainer: "Dan Frumin <dan@groupoid.moe>"
 authors: "Dan Frumin"
-license: "BSD"
+license: "BSD-3-Clause"
 homepage: "http://github.com/co-dan/BI-cutelim"
 bug-reports: "http://github.com/co-dan/BI-cutelim/issue"
 dev-repo: "git+http://github.com/co-dan/BI-cutelim.git"
