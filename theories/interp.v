@@ -7,9 +7,9 @@ From bunched Require Import syntax.
 (** * Interpretation of BI intro the associated algebras *)
 
 Section interp.
-
   Variable (PROP : bi).
-
+  Notation bunch := (@bunch formula).
+  Notation bunch_ctx := (@bunch_ctx formula).
   Implicit Types (A B C : PROP).
   Implicit Type Δ : bunch.
   Implicit Type Π : bunch_ctx.
@@ -31,21 +31,30 @@ Section interp.
     | WAND ϕ ψ => formula_interp ϕ -∗ formula_interp ψ
     end%I.
 
+  Definition sep_interp (sp : sep) : PROP → PROP → PROP :=
+    match sp with
+    | Comma => (∗)
+    | SemiC => (∧)
+    end%I.
+  #[export] Instance sep_interp_proper sp : Proper ((≡) ==> (≡) ==> (≡)) (sep_interp sp).
+  Proof. destruct sp; apply _. Qed.
+  #[export] Instance sep_interp_mono sp : Proper ((⊢) ==> (⊢) ==> (⊢)) (sep_interp sp).
+  Proof. destruct sp; apply _. Qed.
+
   Fixpoint bunch_interp (Δ : bunch) : PROP :=
     match Δ with
     | frml ϕ => formula_interp ϕ
-    | top => True
-    | empty => emp
-    | (Δ ,, Δ')%B => bunch_interp Δ ∗ bunch_interp Δ'
-    | (Δ ;, Δ')%B => bunch_interp Δ ∧ bunch_interp Δ'
-    end%I.
+    | ∅ₐ => True
+    | ∅ₘ => emp
+    | bbin sp Δ Δ' => sep_interp sp (bunch_interp Δ) (bunch_interp Δ')
+    end%B%I.
 
   Lemma bunch_interp_collapse Δ :
-    bunch_interp Δ ≡ formula_interp (collapse Δ).
+    bunch_interp Δ = formula_interp (collapse Δ).
   Proof.
-    induction Δ; simpl; eauto.
-    - by rewrite IHΔ1 IHΔ2.
-    - by rewrite IHΔ1 IHΔ2.
+    induction Δ as [ϕ|sp|sp Δ1 IH1 Δ2 IH2]; try destruct sp; simpl; eauto.
+    - by rewrite IH1 IH2.
+    - by rewrite IH1 IH2.
   Qed.
 
   Definition seq_interp Δ ϕ : Prop :=
@@ -53,10 +62,8 @@ Section interp.
 
   Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
     λ P, match F with
-        | CtxCommaL Δ => P ∗ bunch_interp Δ
-        | CtxCommaR Δ => bunch_interp Δ ∗ P
-        | CtxSemicL Δ => P ∧ bunch_interp Δ
-        | CtxSemicR Δ => bunch_interp Δ ∧ P
+        | CtxL sp Δ => sep_interp sp P (bunch_interp Δ)
+        | CtxR sp Δ => sep_interp sp (bunch_interp Δ) P
         end%I.
 
   Definition bunch_ctx_interp Π : PROP → PROP :=
@@ -89,7 +96,7 @@ Section interp.
     bunch_interp (fill_item C Δ) ⊢ bunch_interp (fill_item C Δ').
   Proof.
     intros H1.
-    induction C as [ ? | ? | ? | ? ]; simpl; by rewrite H1.
+    induction C as [ sp ? | sp ? ]; simpl; by rewrite H1.
   Qed.
 
   Lemma bunch_interp_fill_mono Π Δ Δ' :
@@ -110,13 +117,13 @@ Section interp.
     { simpl. reflexivity. }
     rewrite bunch_ctx_interp_cons.
     Opaque bunch_ctx_interp.
-    destruct F; simpl.
+    destruct F as [sp ?|sp ?]; destruct sp; simpl.
     + rewrite bi.sep_exist_r.
       apply (IHΠ (λ i, P i ∗ bunch_interp Δ2)%I).
-    + rewrite bi.sep_exist_l.
-      apply (IHΠ (λ i, bunch_interp Δ1 ∗ P i)%I).
     + rewrite bi.and_exist_r.
       apply (IHΠ (λ i, P i ∧ bunch_interp Δ2)%I).
+    + rewrite bi.sep_exist_l.
+      apply (IHΠ (λ i, bunch_interp Δ1 ∗ P i)%I).
     + rewrite bi.and_exist_l.
       apply (IHΠ (λ i, bunch_interp Δ1 ∧ P i)%I).
   Qed.
@@ -130,12 +137,9 @@ Section interp.
         by apply bi.equiv_entails_1_1.
       + apply bunch_interp_fill_mono; eauto.
         by apply bi.equiv_entails_1_2.
-    - simpl. by rewrite left_id.
-    - simpl. by rewrite comm.
-    - simpl. by rewrite assoc.
-    - simpl. by rewrite left_id.
-    - simpl. by rewrite comm.
-    - simpl. by rewrite assoc.
+    - simpl. destruct s0; by rewrite left_id.
+    - simpl. destruct s0; by rewrite comm.
+    - simpl. destruct s0; by rewrite assoc.
   Qed.
 
   Global Instance bunch_ctx_interp_mono Π : Proper ((⊢) ==> (⊢)) (bunch_ctx_interp Π).
@@ -143,7 +147,7 @@ Section interp.
     induction Π as [|F Π]=>P1 P2 HP; first by simpl; auto.
     rewrite !bunch_ctx_interp_cons.
     apply IHΠ.
-    destruct F; simpl; f_equiv; eauto.
+    destruct F as [[|] ? | [|] ?]; simpl; f_equiv; eauto.
   Qed.
 
   Global Instance seq_interp_proper : Proper ((≡) ==> (=) ==> (≡)) seq_interp.
@@ -157,3 +161,4 @@ End interp.
 Arguments formula_interp {_} _ _.
 Arguments bunch_interp {_} _ _.
 Arguments seq_interp {_} _ _ _.
+Arguments sep_interp {_} _ _ _.

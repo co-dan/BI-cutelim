@@ -21,22 +21,22 @@ Import SH S.
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
 
-Global Instance bunch_monoid : Monoid bunch comma :=
+Global Instance bunch_monoid : Monoid bunch (bbin Comma) :=
   {| monoid_unit := empty |}.
 
 Definition PB := PM bunch.
-Canonical Structure PB_alg := PM_alg bunch comma.
+Canonical Structure PB_alg := PM_alg bunch (bbin Comma).
 
 (** ** Principal closed sets *)
 Program Definition Fint (ϕ : formula) : PB :=
   {| PMPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
 Next Obligation. solve_proper. Qed.
 
-Definition C := C bunch comma formula Fint.
-Definition cl : PB → PB := cl bunch comma formula Fint.
-Definition cl' : PB → C := cl' bunch comma formula Fint.
+Definition C := C bunch (bbin Comma) formula Fint.
+Definition cl : PB → PB := cl bunch (bbin Comma) formula Fint.
+Definition cl' : PB → C := cl' bunch (bbin Comma) formula Fint.
 
-Definition CPred' : C → PB := CPred bunch comma formula Fint.
+Definition CPred' : C → PB := CPred bunch (bbin Comma) formula Fint.
 Coercion CPred' : C >-> PB.
 
 Local Existing Instance C_equiv.
@@ -145,7 +145,7 @@ Global Instance wand_is_closed (X : PB) (Y : C) :
   Is_closed Fint (X -∗ (Y : PB))%I.
 Proof.
   apply Is_closed_inc.
-  change (from_closure.cl bunch comma formula Fint) with cl.
+  change (from_closure.cl bunch _ formula Fint) with cl.
   change (cl (X -∗ (Y : PB)) ⊢@{PB_alg} X -∗ (Y : PB)).
   cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
                (λ '(Δ, ϕ), Fint' (WAND (collapse (`Δ)) (`ϕ)) : PB)
@@ -182,7 +182,7 @@ Global Instance PB_impl_Is_closed (X : PB) (Y : C) :
   Is_closed Fint (PB_impl' X (Y : PB)).
 Proof.
   apply Is_closed_inc.
-  change (from_closure.cl bunch comma formula Fint) with cl.
+  change (from_closure.cl bunch _ formula Fint) with cl.
   (* change (cl (PB_impl' X Y) ⊢@{PB_alg} X → (Y : PB)). *)
   cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
                (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)) : PB)
@@ -224,7 +224,7 @@ Qed.
 Program Definition C_impl (X Y : C) := {| CPred := PB_impl' X Y |}.
 
 Program Definition C_alg : bi :=
-  C_alg bunch comma formula Fint C_impl _ _ _ .
+  C_alg bunch (bbin Comma) formula Fint C_impl _ _ _ .
 Next Obligation.
   intros X1 X2 HX Y1 Y2 HY. split.
   - intros Δ. simpl. intros H1 Δ' HX'.
@@ -335,13 +335,14 @@ Proof.
   intros Δs HΔ.
   induction T; simpl.
   - apply HΔ.
-  - apply (cl_unit _ _ _). do 2 eexists.
-    repeat split; last reflexivity.
-    + apply IHT1.
-    + apply IHT2.
-  - split.
-    + by apply C_weaken.
-    + rewrite comm. by apply C_weaken.
+  - destruct sp.
+    + apply (cl_unit _ _ _). do 2 eexists.
+      repeat split; last reflexivity.
+      * apply IHT1.
+      * apply IHT2.
+    + split.
+      * by apply C_weaken.
+      * rewrite comm. by apply C_weaken.
 Qed.
 
 (** An alternative description of the closed sets `T[Xs]` for linear terms
@@ -378,80 +379,77 @@ Proof.
     apply C_inhabited.
   - simpl in TL.
     destruct TL as (Hfv & HL1 & HL2).
-    rewrite IHT1 //. rewrite IHT2 //.
-    apply cl_adj. { apply _. }
-    apply bi.wand_elim_l'.
-    apply cl_adj. { apply _. }
-    apply bi.wand_intro_r.
-    apply bi.wand_elim_r'.
-    apply cl_adj. { apply _. }
-    apply bi.wand_intro_l.
-    intros Δ.
-    intros (Δ1 & Δ2 & H1 & H2 & ->).
-    destruct H1 as (Δs1 & HΔs1 & HDs1eq).
-    destruct H2 as (Δs2 & HΔs2 & HDs2eq).
-    apply (cl_unit _ _ _). simpl.
-    pose (Δs := λ (x : V),
-            match decide (x ∈ term_fv T1) with
-            | left _ => Δs1 x
-            | right _ => Δs2 x
-            end).
-    exists Δs. split.
-    + intros i. unfold Δs.
-      case_decide; auto.
-    + assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
-      { apply bterm_ctx_act_fv.
-        unfold Δs. intros i Hi.
-        case_decide; auto. exfalso. auto. }
-      assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
-      { apply bterm_ctx_act_fv.
-        unfold Δs. intros i Hi.
-        case_decide; auto. exfalso.
-        revert Hfv Hi. set_unfold.
-        naive_solver. }
-      by f_equiv.
-  - simpl in TL.
-    destruct TL as (Hfv & HL1 & HL2).
-    rewrite IHT1 //. rewrite IHT2 //.
-    intros Δ [H1 H2] ϕ Hϕ.
-    eapply (BI_Contr []) ; simpl.
-    simpl in *.
-    apply (collapse_l_inv ([CtxSemicR Δ])).
-    simpl. apply impl_r_inv.
-    eapply H1.
-    intros Δ1 HΔ1. simpl.
-    apply BI_Impl_R.
-    rewrite comm.
-    apply (collapse_l [CtxSemicL Δ1]). simpl.
-    apply (collapse_l_inv ([CtxSemicR Δ])). simpl.
-    apply impl_r_inv.
-    eapply H2.
-    intros Δ2 HΔ2. simpl.
-    apply BI_Impl_R. rewrite comm.
-    apply (collapse_l [CtxSemicL Δ2]). simpl.
-    eapply (Hϕ _).
-    destruct HΔ1 as (Δs1 & HΔs1 & HDs1eq).
-    destruct HΔ2 as (Δs2 & HΔs2 & HDs2eq).
-    pose (Δs := λ (x : V),
-            match decide (x ∈ term_fv T1) with
-            | left _ => Δs1 x
-            | right _ => Δs2 x
-            end).
-    exists Δs. split.
-    + intros i. unfold Δs.
-      case_decide; auto.
-    + simpl.
-      assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
-      { apply bterm_ctx_act_fv.
-        unfold Δs. intros i Hi.
-        case_decide; auto. exfalso. auto. }
-      assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
-      { apply bterm_ctx_act_fv.
-        unfold Δs. intros i Hi.
-        case_decide; auto. exfalso.
-        revert Hfv Hi. set_unfold.
-        naive_solver. }
-      by f_equiv.
+    destruct sp; rewrite IHT1 // IHT2 //.
+    { apply cl_adj. { apply _. }
+      apply bi.wand_elim_l'.
+      apply cl_adj. { apply _. }
+      apply bi.wand_intro_r.
+      apply bi.wand_elim_r'.
+      apply cl_adj. { apply _. }
+      apply bi.wand_intro_l.
+      intros Δ.
+      intros (Δ1 & Δ2 & H1 & H2 & ->).
+      destruct H1 as (Δs1 & HΔs1 & HDs1eq).
+      destruct H2 as (Δs2 & HΔs2 & HDs2eq).
+      apply (cl_unit _ _ _). simpl.
+      pose (Δs := λ (x : V),
+              match decide (x ∈ term_fv T1) with
+              | left _ => Δs1 x
+              | right _ => Δs2 x
+              end).
+      exists Δs. split.
+      + intros i. unfold Δs.
+        case_decide; auto.
+      + assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
+        { apply bterm_ctx_act_fv.
+          unfold Δs. intros i Hi.
+          case_decide; auto. exfalso. auto. }
+        assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
+        { apply bterm_ctx_act_fv.
+          unfold Δs. intros i Hi.
+          case_decide; auto. exfalso.
+          revert Hfv Hi. set_unfold.
+          naive_solver. }
+        by f_equiv. }
+    { intros Δ [H1 H2] ϕ Hϕ.
+      eapply (BI_Contr []) ; simpl.
+      simpl in *.
+      apply (collapse_l_inv ([CtxSemicR Δ])).
+      simpl. apply impl_r_inv.
+      eapply H1.
+      intros Δ1 HΔ1. simpl.
+      apply BI_Impl_R.
+      rewrite comm.
+      apply (collapse_l [CtxSemicL Δ1]). simpl.
+      apply (collapse_l_inv ([CtxSemicR Δ])). simpl.
+      apply impl_r_inv.
+      eapply H2.
+      intros Δ2 HΔ2. simpl.
+      apply BI_Impl_R. rewrite comm.
+      apply (collapse_l [CtxSemicL Δ2]). simpl.
+      eapply (Hϕ _).
+      destruct HΔ1 as (Δs1 & HΔs1 & HDs1eq).
+      destruct HΔ2 as (Δs2 & HΔs2 & HDs2eq).
+      pose (Δs := λ (x : V),
+              match decide (x ∈ term_fv T1) with
+              | left _ => Δs1 x
+              | right _ => Δs2 x
+              end).
+      exists Δs. split.
+      + intros i. unfold Δs.
+        case_decide; auto.
+      + simpl.
+        assert (bterm_ctx_act T1 Δs1 = bterm_ctx_act T1 Δs) as <-.
+        { apply bterm_ctx_act_fv.
+          unfold Δs. intros i Hi.
+          case_decide; auto. exfalso. auto. }
+        assert (bterm_ctx_act T2 Δs2 = bterm_ctx_act T2 Δs) as <-.
+        { apply bterm_ctx_act_fv.
+          unfold Δs. intros i Hi.
+          case_decide; auto. exfalso.
+          revert Hfv Hi. set_unfold.
+          naive_solver. }
+        by f_equiv. }
 Qed.
 
 Lemma blinterm_C_desc' `{!EqDecision V, !Countable V}
@@ -500,7 +498,7 @@ Proof.
   destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
   apply (Hϕ2 _). unfold inner_interp.
   apply (H _). apply (C_collapse_inv _ [] Δ). simpl.
-  apply (bunch_interp_collapse C_alg C_atom).
+  rewrite (bunch_interp_collapse C_alg C_atom).
   apply okada_property.
 Qed.
 

@@ -37,6 +37,9 @@ Reserved Notation "P ⊢ᴮ Q" (at level 99, Q at level 200, right associativity
 Module Seqcalc (R : ANALYTIC_STRUCT_EXT).
 Import R.
 
+Notation bunch := (@bunch formula).
+Notation bunch_ctx := (@bunch_ctx formula).
+
 Inductive proves : bunch → formula → Prop :=
 (** Structural rules: *)
 | BI_Axiom (a : atom) : frml (ATOM a) ⊢ᴮ ATOM a
@@ -54,9 +57,9 @@ Inductive proves : bunch → formula → Prop :=
   fill Π (bterm_ctx_act T Δs) ⊢ᴮ ϕ
 (** Multiplicatives: *)
 | BI_Emp_R :
-    empty ⊢ᴮ EMP
+    ∅ₘ ⊢ᴮ EMP
 | BI_Emp_L Π ϕ :
-    (fill Π empty ⊢ᴮ ϕ) →
+    (fill Π ∅ₘ ⊢ᴮ ϕ) →
     fill Π (frml EMP) ⊢ᴮ ϕ
 | BI_Sep_R Δ Δ' ϕ ψ :
     (Δ ⊢ᴮ ϕ) →
@@ -78,7 +81,7 @@ Inductive proves : bunch → formula → Prop :=
 | BI_True_R Δ :
     Δ ⊢ᴮ TOP
 | BI_True_L Π ϕ :
-    (fill Π top ⊢ᴮ ϕ) →
+    (fill Π ∅ₐ ⊢ᴮ ϕ) →
     fill Π (frml TOP) ⊢ᴮ ϕ
 | BI_Conj_R Δ Δ' ϕ ψ :
     (Δ ⊢ᴮ ϕ) →
@@ -134,25 +137,25 @@ Proof.
   - eapply BI_Wand_R. rewrite comm. eapply (BI_Wand_L []); eauto.
 Qed.
 
-(** "Collapsing" a bunch *)
+(** "Collapsing" a bunch as a derived left rule *)
 Lemma collapse_l (Π : bunch_ctx) (Δ : bunch) (ϕ : formula) :
     (fill Π Δ ⊢ᴮ ϕ) → fill Π (frml (collapse Δ)) ⊢ᴮ ϕ.
 Proof.
   revert Π. induction Δ=>Π; simpl; eauto.
   - intros HX.
-    by apply BI_True_L, HX.
+    destruct s.
+    + by apply BI_Emp_L, HX.
+    + by apply BI_True_L, HX.
   - intros HX.
-    by apply BI_Emp_L, HX.
-  - intros HX.
-    apply BI_Sep_L.
-    apply (IHΔ1 (CtxCommaL _::Π)); simpl.
-    apply (IHΔ2 (CtxCommaR _::Π)); simpl.
-    apply HX.
-  - intros HX.
-    apply BI_Conj_L.
-    apply (IHΔ1 (CtxSemicL _::Π)); simpl.
-    apply (IHΔ2 (CtxSemicR _::Π)); simpl.
-    apply HX.
+    destruct s.
+    + apply BI_Sep_L.
+      apply (IHΔ1 (CtxCommaL _::Π)); simpl.
+      apply (IHΔ2 (CtxCommaR _::Π)); simpl.
+      apply HX.
+    + apply BI_Conj_L.
+      apply (IHΔ1 (CtxSemicL _::Π)); simpl.
+      apply (IHΔ2 (CtxSemicR _::Π)); simpl.
+      apply HX.
 Qed.
 
 (** * Interpretation *)
@@ -197,7 +200,7 @@ Proof.
   - induction Π as [|C Π IH]; simpl.
     { apply bi.False_elim. }
     rewrite -IH.
-    destruct C; simpl; apply bunch_interp_fill_mono; simpl.
+    destruct C as [[]?|[]?]; simpl; apply bunch_interp_fill_mono; simpl.
     all: by rewrite ?left_absorb ?right_absorb.
   - apply bi.True_intro.
   - by rewrite IHproves1 IHproves2.

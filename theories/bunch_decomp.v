@@ -7,28 +7,22 @@ From bunched Require Export syntax terms.
 (** We have an inductive type that characterizes when a bunch can be
   decomposed into a context and a sub-bunch. This essentially gives an
   us an inductive reasoning principle for equations [fill Π Δ = Δ']. *)
-Inductive bunch_decomp :
-  bunch → bunch_ctx → bunch → Prop :=
+Inductive bunch_decomp {frml} :
+  @bunch frml → @bunch_ctx frml → @bunch frml → Prop :=
 | decomp_id Δ : bunch_decomp Δ [] Δ
-| decomp_comma_1 Δ1 Δ2 Π Δ :
+| decomp_bin_1 sp Δ1 Δ2 Π Δ :
     bunch_decomp Δ1 Π Δ →
-    bunch_decomp (Δ1,,Δ2)%B (Π ++ [CtxCommaL Δ2]) Δ
-| decomp_comma_2 Δ1 Δ2 Π Δ :
+    bunch_decomp (bbin sp Δ1 Δ2) (Π ++ [CtxL sp Δ2]) Δ
+| decomp_bin_2 sp Δ1 Δ2 Π Δ :
     bunch_decomp Δ2 Π Δ →
-    bunch_decomp (Δ1,,Δ2)%B (Π ++ [CtxCommaR Δ1]) Δ
-| decomp_semic_1 Δ1 Δ2 Π Δ :
-    bunch_decomp Δ1 Π Δ →
-    bunch_decomp (Δ1;,Δ2)%B (Π ++ [CtxSemicL Δ2]) Δ
-| decomp_semic_2 Δ1 Δ2 Π Δ :
-    bunch_decomp Δ2 Π Δ →
-    bunch_decomp (Δ1;,Δ2)%B (Π ++ [CtxSemicR Δ1]) Δ.
+    bunch_decomp (bbin sp Δ1 Δ2) (Π ++ [CtxR sp Δ1]) Δ.
 
 (** [bunch_decomp Δ' Π Δ] completely characterizes [fill Π Δ = Δ'] *)
-Lemma bunch_decomp_correct Δ Π Δ' :
+Lemma bunch_decomp_correct {frml} (Δ Δ' : @bunch frml) Π :
   bunch_decomp Δ Π Δ' → Δ = fill Π Δ'.
 Proof. induction 1; rewrite ?fill_app /= //; try by f_equiv. Qed.
 
-Lemma bunch_decomp_complete' Π Δ' :
+Lemma bunch_decomp_complete' {frml} Π (Δ' : @bunch frml) :
   bunch_decomp (fill Π Δ') Π Δ'.
 Proof.
   revert Δ'. remember (reverse Π) as Πr.
@@ -45,12 +39,12 @@ Proof.
   induction HΠ=>Δ' /=; econstructor; eapply IHΠr; by rewrite reverse_involutive.
 Qed.
 
-Lemma bunch_decomp_complete Δ Π Δ' :
+Lemma bunch_decomp_complete {frml} (Δ Δ' : @bunch frml) Π :
   (fill Π Δ' = Δ) →
   bunch_decomp Δ Π Δ'.
 Proof. intros <-. apply bunch_decomp_complete'. Qed.
 
-Lemma bunch_decomp_iff Δ Π Δ' :
+Lemma bunch_decomp_iff {frml} (Δ Δ':@bunch frml) Π :
   (fill Π Δ' = Δ) ↔ bunch_decomp Δ Π Δ'.
 Proof.
   split.
@@ -61,7 +55,7 @@ Qed.
 (** * Properties of bunched contexts *)
 (** We prove several useful properties using the inductive system defined above. *)
 
-Lemma fill_is_frml Π Δ ϕ :
+Lemma fill_is_frml {formula} Π Δ (ϕ : formula) :
   fill Π Δ = frml ϕ →
   Π = [] ∧ Δ = frml ϕ.
 Proof.
@@ -69,20 +63,20 @@ Proof.
   inversion H; eauto.
 Qed.
 
-Lemma bunch_decomp_app C C0 Δ Δ0 :
-  bunch_decomp Δ C0 Δ0 →
-  bunch_decomp (fill C Δ) (C0 ++ C) Δ0.
+Lemma bunch_decomp_app {formula} Π Π0 (Δ Δ0 : @bunch formula) :
+  bunch_decomp Δ Π0 Δ0 →
+  bunch_decomp (fill Π Δ) (Π0 ++ Π) Δ0.
 Proof.
-  revert Δ Δ0 C0.
-  induction C as [|F C]=>Δ Δ0 C0.
+  revert Δ Δ0 Π0.
+  induction Π as [|F Π]=>Δ Δ0 Π0.
   { simpl. by rewrite app_nil_r. }
   intros HD.
-  replace (C0 ++ F :: C) with ((C0 ++ [F]) ++ C); last first.
+  replace (Π0 ++ F :: Π) with ((Π0 ++ [F]) ++ Π); last first.
   { by rewrite -assoc. }
-  apply IHC. destruct F; simpl; by econstructor.
+  apply IHΠ. destruct F; simpl; by econstructor.
 Qed.
 
-Lemma bunch_decomp_ctx Π Π' Δ ϕ :
+Lemma bunch_decomp_ctx {formula} Π Π' Δ (ϕ : formula) :
   bunch_decomp (fill Π Δ) Π' (frml ϕ) →
   ((∃ Π0, bunch_decomp Δ Π0 (frml ϕ) ∧ Π' = Π0 ++ Π) ∨
    (∃ (Π0 Π1 : bunch → bunch_ctx),
@@ -102,36 +96,16 @@ Proof.
       * left. eexists; split; eauto.
         rewrite -assoc //.
       * right.
-        exists (λ A, (Π1 ++ [CtxCommaR A]) ++ Π).
-        exists (λ A, ([CtxCommaL (fill Π1 A)] ++ Π)).
+        exists (λ A, (Π1 ++ [CtxR s A]) ++ Π).
+        exists (λ A, ([CtxL s (fill Π1 A)] ++ Π)).
         repeat split.
         { intros A B. by rewrite /= -!assoc /= !fill_app /=. }
         { intros A. by rewrite /= -!assoc /= !fill_app /=. }
         { intros A. apply bunch_decomp_app. by econstructor. }
     + inversion HΠ0; simplify_eq/=.
       * right.
-        exists (λ A, (Π1 ++ [CtxCommaL A]) ++ Π).
-        exists (λ A, ([CtxCommaR (fill Π1 A)] ++ Π)).
-        repeat split.
-        { intros A B. by rewrite /= -!assoc /= !fill_app. }
-        { intros A. by rewrite /= -!assoc /= !fill_app. }
-        { intros A. apply bunch_decomp_app. by econstructor. }
-      * left. eexists; split; eauto.
-        rewrite -assoc //.
-    + inversion HΠ0; simplify_eq/=.
-      * left. eexists; split; eauto.
-        rewrite -assoc //.
-      * right.
-        exists (λ A, (Π1 ++ [CtxSemicR A]) ++ Π).
-        exists (λ A, ([CtxSemicL (fill Π1 A)] ++ Π)).
-        repeat split.
-        { intros A B. by rewrite /= -!assoc /= !fill_app. }
-        { intros A. by rewrite /= -!assoc /= !fill_app. }
-        { intros A. apply bunch_decomp_app. by econstructor. }
-    + inversion HΠ0; simplify_eq/=.
-      * right.
-        exists (λ A, (Π1 ++ [CtxSemicL A]) ++ Π).
-        exists (λ A, ([CtxSemicR (fill Π1 A)] ++ Π)).
+        exists (λ A, (Π1 ++ [CtxL s A]) ++ Π).
+        exists (λ A, ([CtxR s (fill Π1 A)] ++ Π)).
         repeat split.
         { intros A B. by rewrite /= -!assoc /= !fill_app. }
         { intros A. by rewrite /= -!assoc /= !fill_app. }
@@ -146,8 +120,8 @@ Proof.
     intros A. apply HΠ.
 Qed.
 
-Lemma bterm_ctx_act_decomp `{!EqDecision V, !Countable V} (T : bterm V)
-  (Δs : V → bunch) ϕ Π :
+Lemma bterm_ctx_act_decomp {formula} `{!EqDecision V, !Countable V} (T : bterm V)
+  (Δs : V → bunch) (ϕ : formula) Π :
   linear_bterm T →
   bterm_ctx_act T Δs = fill Π (frml ϕ) →
   ∃ (j : V) Π₀ , j ∈ term_fv T ∧ Δs j = fill Π₀ (frml ϕ) ∧
@@ -163,8 +137,8 @@ Proof.
     intros Ht. symmetry in Ht.
     apply bunch_decomp_complete in Ht.
     inversion Ht; simplify_eq/=.
-    + apply bunch_decomp_correct in H3.
-      specialize (IHT1 _ Hlin1 H3) as (j & Π₀ & Hjfv & Hj & HH).
+    + apply bunch_decomp_correct in H4.
+      specialize (IHT1 _ Hlin1 H4) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
       { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
@@ -175,37 +149,8 @@ Proof.
         intros i. destruct (decide (i = j)) as [->|?].
         { naive_solver. }
         rewrite fn_lookup_insert_ne//.
-    + apply bunch_decomp_correct in H3.
-      specialize (IHT2 _ Hlin2 H3) as (j & Π₀ & Hjfv & Hj & HH).
-      exists j, Π₀. repeat split; auto.
-      { simpl. set_solver. }
-      intros Γ. rewrite fill_app/=. f_equiv.
-      * assert (j ∉ term_fv T1).
-        { set_solver. }
-        apply bterm_ctx_act_fv.
-        intros i. destruct (decide (i = j)) as [->|?].
-        { naive_solver. }
-        rewrite fn_lookup_insert_ne//.
-      * apply HH.
-  - simpl. simpl in Hlin.
-    destruct Hlin as (Ht12 & Hlin1 & Hlin2).
-    intros Ht. symmetry in Ht.
-    apply bunch_decomp_complete in Ht.
-    inversion Ht; simplify_eq/=.
-    + apply bunch_decomp_correct in H3.
-      specialize (IHT1 _ Hlin1 H3) as (j & Π₀ & Hjfv & Hj & HH).
-      exists j, Π₀. repeat split; auto.
-      { simpl. set_solver. }
-      intros Γ. rewrite fill_app/=. f_equiv.
-      * apply HH.
-      * assert (j ∉ term_fv T2).
-        { set_solver. }
-        apply bterm_ctx_act_fv.
-        intros i. destruct (decide (i = j)) as [->|?].
-        { naive_solver. }
-        rewrite fn_lookup_insert_ne//.
-    + apply bunch_decomp_correct in H3.
-      specialize (IHT2 _ Hlin2 H3) as (j & Π₀ & Hjfv & Hj & HH).
+    + apply bunch_decomp_correct in H4.
+      specialize (IHT2 _ Hlin2 H4) as (j & Π₀ & Hjfv & Hj & HH).
       exists j, Π₀. repeat split; auto.
       { simpl. set_solver. }
       intros Γ. rewrite fill_app/=. f_equiv.
