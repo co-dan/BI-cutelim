@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap.
 From bunched.algebra Require Import bi from_monoid from_closure.
-From bunched Require Import seqcalc seqcalc_height interp terms syntax.
+From bunched Require Import seqcalc seqcalc_height.
 
 (** * Parameters to the proof: a list of simple structural extensions *)
 Parameter rules : list structural_rule.
@@ -85,7 +85,7 @@ Lemma C_collapse (X : C) Γ Δ :
 Proof.
   intros HX.
   apply C_intro=>ϕ Hϕ.
-  apply collapse_l. by apply (Hϕ _).
+  apply BI_Collapse_L. by apply (Hϕ _).
 Qed.
 
 Lemma C_collapse_inv (X : C) Γ Δ :
@@ -93,7 +93,7 @@ Lemma C_collapse_inv (X : C) Γ Δ :
 Proof.
   intros HX.
   apply C_intro=>ϕ Hϕ.
-  apply collapse_l_inv. by apply (Hϕ _).
+  apply BI_Collapse_L_inv. by apply (Hϕ _).
 Qed.
 
 (** Some calculations in the model. *)
@@ -414,19 +414,19 @@ Proof.
     { intros Δ [H1 H2] ϕ Hϕ.
       eapply (BI_Contr []) ; simpl.
       simpl in *.
-      apply (collapse_l_inv ([CtxSemicR Δ])).
+      apply (BI_Collapse_L_inv ([CtxSemicR Δ])).
       simpl. apply impl_r_inv.
       eapply H1.
       intros Δ1 HΔ1. simpl.
       apply BI_Impl_R.
       rewrite comm.
-      apply (collapse_l [CtxSemicL Δ1]). simpl.
-      apply (collapse_l_inv ([CtxSemicR Δ])). simpl.
+      apply (BI_Collapse_L [CtxSemicL Δ1]). simpl.
+      apply (BI_Collapse_L_inv ([CtxSemicR Δ])). simpl.
       apply impl_r_inv.
       eapply H2.
       intros Δ2 HΔ2. simpl.
       apply BI_Impl_R. rewrite comm.
-      apply (collapse_l [CtxSemicL Δ2]). simpl.
+      apply (BI_Collapse_L [CtxSemicL Δ2]). simpl.
       eapply (Hϕ _).
       destruct HΔ1 as (Δs1 & HΔs1 & HDs1eq).
       destruct HΔ2 as (Δs2 & HΔs2 & HDs2eq).
@@ -511,9 +511,9 @@ Proof.
   { apply C_extensions. }
   intros H2%(seq_interp_sound (PROP:=C_alg) C_atom); last first.
   { apply C_extensions. }
-  change (seq_interp C_atom Δ ψ) with (bunch_interp C_atom Δ ⊢@{C_alg} formula_interp C_atom ψ) in H1.
+  change (seq_interp C_atom Δ ψ) with (bunch_interp (formula_interp C_atom) Δ ⊢@{C_alg} formula_interp C_atom ψ) in H1.
   change (seq_interp C_atom (fill Γ (frml ψ)) ϕ) with
-    (bunch_interp C_atom (fill Γ (frml ψ)) ⊢@{C_alg} formula_interp C_atom ϕ) in H2.
+    (bunch_interp (formula_interp C_atom) (fill Γ (frml ψ)) ⊢@{C_alg} formula_interp C_atom ϕ) in H2.
   apply C_interp_cf.
   unfold seq_interp.
   etrans; last apply H2.
@@ -522,4 +522,4 @@ Proof.
 Qed.
 
 (* Print Assumptions cut. *)
-(* ==> Depends only on rules and rules_good *)
+(* ==> Depends only on `rules` and `rules_good` *)

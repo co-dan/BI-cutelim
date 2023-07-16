@@ -10,7 +10,8 @@ theories/algebra/derived_laws.v
 theories/algebra/bi.v
 theories/algebra/from_monoid.v
 theories/algebra/from_closure.v
-theories/syntax.v
+theories/bunches.v
+theories/formula.v
 theories/terms.v
 theories/analytic_completion.v
 theories/bunch_decomp.v
@@ -19,8 +20,9 @@ theories/interp.v
 theories/seqcalc_height.v
 theories/cutelim.v
 
-theories/seqcalc_s4.v
-theories/interp_s4.v
-theories/seqcalc_height_s4.v
-theories/cutelim_s4.v
+theories/s4/formula.v
+theories/s4/seqcalc.v
+theories/s4/interp.v
+theories/s4/seqcalc_height.v
+theories/s4/cutelim.v
 

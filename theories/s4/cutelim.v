@@ -2,7 +2,10 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
 From bunched.algebra Require Import bi.
-From bunched Require Import seqcalc_height_s4 seqcalc_s4 interp_s4.
+From bunched.s4 Require Import formula seqcalc_height seqcalc interp.
+From bunched Require Import bunches.
+Notation bunch := (@bunch formula).
+
 
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
@@ -38,7 +41,7 @@ Module PB.
   Qed.
 
   Program Definition PB_emp : PB :=
-    {| PBPred := (λ Δ, Δ ≡ empty) |}.
+    {| PBPred := (λ Δ, Δ ≡ ∅ₘ)%B |}.
   Next Obligation. solve_proper. Qed.
 
   Program Definition PB_sep (X Y : PB) : PB :=
@@ -85,7 +88,7 @@ Module PB.
   Lemma emp_sep_1 P : P ⊢ emp ∗ P.
   Proof.
     intros Δ HP. compute.
-    eexists empty%B,_. repeat split.
+    eexists ∅ₘ%B,_. repeat split.
     - done.
     - eapply HP.
     - by rewrite left_id.
@@ -271,7 +274,7 @@ Module Cl.
   Qed.
 
   Lemma C_necessitate (X : C) Δ :
-    X Δ → X (bunch_map BOX Δ).
+    X Δ → X (fmap BOX Δ).
   Proof.
     destruct X as [X Xcl]. simpl.
     intros HX. rewrite Xcl.
@@ -280,7 +283,7 @@ Module Cl.
   Qed.
 
   Lemma C_bunch_box_idemp (X : C) Δ :
-    X (bunch_map BOX (bunch_map BOX Δ)) → X (bunch_map BOX Δ).
+    X (fmap BOX (fmap BOX Δ)) → X (fmap BOX Δ).
   Proof.
     destruct X as [X Xcl]. simpl.
     intros HX. rewrite Xcl.
@@ -314,19 +317,17 @@ Module Cl.
     destruct X as [X Xcl]. simpl.
     revert Γ. induction Δ=>Γ; simpl; eauto.
     - intros HX. rewrite Xcl=>ϕ Hϕ.
-      by apply BI_True_L, Hϕ.
+      destruct s; by econstructor; apply Hϕ.
     - intros HX. rewrite Xcl=>ϕ Hϕ.
-      by apply BI_Emp_L, Hϕ.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      apply BI_Sep_L, Hϕ.
-      apply (IHΔ1 (CtxCommaL _::Γ)); simpl.
-      apply (IHΔ2 (CtxCommaR _::Γ)); simpl.
-      apply HX.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      apply BI_Conj_L, Hϕ.
-      apply (IHΔ1 (CtxSemicL _::Γ)); simpl.
-      apply (IHΔ2 (CtxSemicR _::Γ)); simpl.
-      apply HX.
+      destruct s.
+      + apply BI_Sep_L, Hϕ.
+        apply (IHΔ1 (CtxCommaL _::Γ)); simpl.
+        apply (IHΔ2 (CtxCommaR _::Γ)); simpl.
+        apply HX.
+      + apply BI_Conj_L, Hϕ.
+        apply (IHΔ1 (CtxSemicL _::Γ)); simpl.
+        apply (IHΔ2 (CtxSemicR _::Γ)); simpl.
+        apply HX.
   Qed.
 
   Lemma C_collapse_inv (X : C) Γ Δ :
@@ -334,7 +335,7 @@ Module Cl.
   Proof.
     destruct X as [X Xcl]. simpl.
     rewrite !Xcl. intros HX ϕ Hϕ.
-    simpl in HX. apply collapse_l_inv.
+    simpl in HX. apply BI_Collapse_L_inv.
     by apply HX.
   Qed.
 
@@ -417,7 +418,7 @@ Module Cl.
       rewrite Yc. intros ψ Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
       apply impl_r_inv in H.
-      by apply (collapse_l_inv [CtxSemicR Δ]).
+      by apply (BI_Collapse_L_inv [CtxSemicR Δ]).
   Qed.
 
   Definition C_emp : C := cl' PB_emp.
@@ -448,11 +449,11 @@ Module Cl.
       rewrite Yc. intros ψ Hψ.
       specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
       apply wand_r_inv in H.
-      by apply (collapse_l_inv [CtxCommaR Δ]).
+      by apply (BI_Collapse_L_inv [CtxCommaR Δ]).
   Qed.
 
   Program Definition PB_box (X: PB) : PB :=
-    {| PBPred := λ Δ, ∃ Δ', Δ ≡ bunch_map BOX Δ' ∧ X Δ' |}.
+    {| PBPred := λ Δ, ∃ Δ', Δ ≡ fmap BOX Δ' ∧ X Δ' |}.
   Next Obligation. solve_proper. Qed.
   Definition C_box (X : C) : C := cl' (PB_box X).
 
@@ -531,7 +532,7 @@ Module Cl.
   Lemma emp_sep_1 P : P ⊢ emp ∗ P.
   Proof.
     intros Δ HP. eapply cl_unit.
-    exists empty, Δ. rewrite left_id.
+    exists ∅ₘ%B, Δ. rewrite left_id.
     repeat split; eauto.
     intros ϕ Hϕ. eapply Hϕ. simpl. reflexivity.
   Qed.
@@ -560,7 +561,7 @@ Module Cl.
   Definition C_pure (ϕ : Prop) : C := cl' (PB_pure ϕ).
 
   Program Definition PB_top : PB :=
-    {| PBPred := (λ Δ, Δ ≡ top) |}.
+    {| PBPred := (λ Δ, Δ ≡ ∅ₐ)%B |}.
 
   Next Obligation. solve_proper. Qed.
 
@@ -570,7 +571,7 @@ Module Cl.
   Proof.
     apply cl_adj.
     intros Δ _.
-    rewrite -(BE_semic_unit_l Δ).
+    rewrite -(BE_unit_l _ Δ).
     apply C_weaken. apply cl_unit.
     simpl. reflexivity.
   Qed.
@@ -605,7 +606,7 @@ Module Cl.
     intros Δ.
     destruct 1 as (Δ' & HD & HX).
     simpl. intros D1 H1 f Hf. rewrite HD.
-    rewrite comm. apply (collapse_l_inv [CtxSemicR D1]). simpl.
+    rewrite comm. apply (BI_Collapse_L_inv [CtxSemicR D1]). simpl.
     apply impl_r_inv. apply H1.
     intros D2. destruct 1 as (D2' & HD2 & HY). simpl.
     apply BI_Impl_R.
@@ -637,16 +638,16 @@ Module Cl.
   Lemma box_true : C_pure True ⊢ C_box (C_pure True).
   Proof.
     apply cl_adj. intros Δ _.
-    rewrite -(BE_semic_unit_l Δ).
+    rewrite -(BE_unit_l _ Δ).
     apply C_weaken. apply cl_unit.
-    simpl. exists top. simpl. split; auto.
+    simpl. exists ∅ₐ%B. simpl. split; auto.
     apply cl_unit. done.
   Qed.
 
   Lemma box_emp : emp ⊢ C_box emp.
   Proof.
     apply cl_mono. intros Δ HD; simpl.
-    exists empty. split; eauto. apply cl_unit.
+    exists ∅ₘ%B. split; eauto. apply cl_unit.
     simpl. reflexivity.
   Qed.
 
@@ -882,7 +883,7 @@ Proof.
     apply Hϕ2. unfold inner_interp.
     apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
     cut (formula_interp C_alg C_box C_atom (collapse (fill Γ Δ)) (frml (collapse (fill Γ Δ)))).
-    { apply (bunch_interp_collapse C_alg C_box C_atom). }
+    { by rewrite bunch_interp_collapse. }
     apply okada_property. }
   simpl. rewrite -H2.
   apply bunch_interp_fill_mono, H1.

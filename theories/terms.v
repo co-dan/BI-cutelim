@@ -1,7 +1,7 @@
 (* Bunched terms *)
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
-From bunched Require Import syntax interp prelude.sets.
+From bunched Require Import bunches prelude.sets.
 From stdpp Require Import prelude base gmap functions.
 
 (** * Bunched terms *)
@@ -195,10 +195,10 @@ Qed.
   ⟦ T(Δs) ⟧ = ⟦ T ⟧ (⟦ Δs ⟧)
 >>
 *)
-Lemma bterm_ctx_alg_act {PROP : bi} `{!EqDecision V,!Countable V}
-      (T : bterm V) (Δs : V → bunch) (s : atom → PROP) :
-  bunch_interp s (bterm_ctx_act T Δs) =
-  bterm_alg_act T (bunch_interp s ∘ Δs).
+Lemma bterm_ctx_alg_act {PROP : bi} {formula} `{!EqDecision V,!Countable V}
+      (T : bterm V) (Δs : V → bunch) (i : formula → PROP) :
+  bunch_interp i (bterm_ctx_act T Δs) =
+  bterm_alg_act T (bunch_interp i ∘ Δs).
 Proof.
   induction T; simpl.
   - reflexivity.

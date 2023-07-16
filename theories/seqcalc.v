@@ -2,7 +2,7 @@
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap fin_sets.
 From bunched.algebra Require Import bi.
-From bunched Require Export syntax interp terms.
+From bunched Require Export bunches formula terms interp.
 
 Module Type ANALYTIC_STRUCT_EXT.
 (** An _analytic structural rule_ is a rule of the form
@@ -138,7 +138,7 @@ Proof.
 Qed.
 
 (** "Collapsing" a bunch as a derived left rule *)
-Lemma collapse_l (Π : bunch_ctx) (Δ : bunch) (ϕ : formula) :
+Lemma BI_Collapse_L (Π : bunch_ctx) (Δ : bunch) (ϕ : formula) :
     (fill Π Δ ⊢ᴮ ϕ) → fill Π (frml (collapse Δ)) ⊢ᴮ ϕ.
 Proof.
   revert Π. induction Δ=>Π; simpl; eauto.
@@ -182,7 +182,7 @@ Proof.
     apply bi.and_intro; eauto.
   - assert (rule_valid PROP Ts T) as HH.
     { eapply Hrules; auto. }
-    specialize (HH (bunch_interp s ∘ Δs)).
+    specialize (HH (bunch_interp (formula_interp s) ∘ Δs)).
     rewrite bunch_ctx_interp_decomp.
     rewrite bterm_ctx_alg_act.
     rewrite HH.
@@ -207,7 +207,7 @@ Proof.
   - by apply bi.or_intro_l.
   - by apply bi.or_intro_r.
   - rewrite bunch_ctx_interp_decomp. simpl.
-    trans (bunch_ctx_interp PROP s Π (∃ (x : bool), if x then bunch_interp s (frml ϕ) else bunch_interp s (frml ψ))).
+    trans (bunch_ctx_interp PROP (formula_interp s) Π (∃ (x : bool), if x then bunch_interp (formula_interp s) (frml ϕ) else bunch_interp (formula_interp s) (frml ψ))).
     { apply bunch_ctx_interp_mono.
       apply bi.or_elim.
       - by eapply (bi.exist_intro' _ _ true).

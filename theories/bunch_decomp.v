@@ -1,7 +1,7 @@
 (** Inductive representation for decomposition of bunches, and associated properties *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude gmap functions.
-From bunched Require Export syntax terms.
+From bunched Require Export bunches terms.
 
 (** * Alternative representation of decomposition of bunches *)
 (** We have an inductive type that characterizes when a bunch can be

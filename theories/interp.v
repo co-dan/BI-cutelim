@@ -1,7 +1,7 @@
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
 From stdpp Require Import prelude.
-From bunched Require Import syntax.
+From bunched Require Import bunches formula.
 
 
 (** * Interpretation of BI intro the associated algebras *)
@@ -31,23 +31,7 @@ Section interp.
     | WAND ϕ ψ => formula_interp ϕ -∗ formula_interp ψ
     end%I.
 
-  Definition sep_interp (sp : sep) : PROP → PROP → PROP :=
-    match sp with
-    | Comma => (∗)
-    | SemiC => (∧)
-    end%I.
-  #[export] Instance sep_interp_proper sp : Proper ((≡) ==> (≡) ==> (≡)) (sep_interp sp).
-  Proof. destruct sp; apply _. Qed.
-  #[export] Instance sep_interp_mono sp : Proper ((⊢) ==> (⊢) ==> (⊢)) (sep_interp sp).
-  Proof. destruct sp; apply _. Qed.
-
-  Fixpoint bunch_interp (Δ : bunch) : PROP :=
-    match Δ with
-    | frml ϕ => formula_interp ϕ
-    | ∅ₐ => True
-    | ∅ₘ => emp
-    | bbin sp Δ Δ' => sep_interp sp (bunch_interp Δ) (bunch_interp Δ')
-    end%B%I.
+  Notation bunch_interp := (bunch_interp formula_interp).
 
   Lemma bunch_interp_collapse Δ :
     bunch_interp Δ = formula_interp (collapse Δ).
@@ -60,96 +44,6 @@ Section interp.
   Definition seq_interp Δ ϕ : Prop :=
     (bunch_interp Δ ⊢ formula_interp ϕ).
 
-  Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
-    λ P, match F with
-        | CtxL sp Δ => sep_interp sp P (bunch_interp Δ)
-        | CtxR sp Δ => sep_interp sp (bunch_interp Δ) P
-        end%I.
-
-  Definition bunch_ctx_interp Π : PROP → PROP :=
-    λ P, foldl (flip bunch_ctx_item_interp) P Π.
-
-  Lemma bunch_ctx_interp_cons F Π A :
-    bunch_ctx_interp (F::Π) A = bunch_ctx_interp Π (bunch_ctx_item_interp F A).
-  Proof. reflexivity. Qed.
-
-  Global Instance bunch_ctx_interp_proper Π : Proper ((≡) ==> (≡)) (bunch_ctx_interp Π).
-  Proof.
-    induction Π as [|F Π]=>X Y HXY.
-    - simpl; auto.
-    - simpl.
-      eapply IHΠ.
-      destruct F; solve_proper.
-  Qed.
-
-  Lemma bunch_ctx_interp_decomp Π Δ :
-    bunch_interp (fill Π Δ) ≡ bunch_ctx_interp Π (bunch_interp Δ).
-  Proof.
-    revert Δ. induction Π as [|C Π IH]=>Δ; first by reflexivity.
-    apply bi.equiv_entails_2.
-    - destruct C; simpl; by rewrite IH.
-    - destruct C; simpl; by rewrite IH.
-  Qed.
-
-  Lemma bunch_interp_fill_item_mono (C : bunch_ctx_item) Δ Δ' :
-    (bunch_interp Δ ⊢ bunch_interp Δ') →
-    bunch_interp (fill_item C Δ) ⊢ bunch_interp (fill_item C Δ').
-  Proof.
-    intros H1.
-    induction C as [ sp ? | sp ? ]; simpl; by rewrite H1.
-  Qed.
-
-  Lemma bunch_interp_fill_mono Π Δ Δ' :
-    (bunch_interp Δ ⊢ bunch_interp Δ') →
-    bunch_interp (fill Π Δ) ⊢ bunch_interp (fill Π Δ').
-  Proof.
-    revert Δ Δ'.
-    induction Π as [|C Π IH]=> Δ Δ' H1; eauto.
-    simpl. apply IH.
-    by apply bunch_interp_fill_item_mono.
-  Qed.
-
-  Lemma bunch_ctx_interp_exist Π {I} (P : I → PROP) :
-    bunch_ctx_interp Π (∃ (i : I), P i : PROP)%I ≡
-                     (∃ i, bunch_ctx_interp Π (P i))%I.
-  Proof.
-    revert P. induction Π as [|F Π]=>P.
-    { simpl. reflexivity. }
-    rewrite bunch_ctx_interp_cons.
-    Opaque bunch_ctx_interp.
-    destruct F as [sp ?|sp ?]; destruct sp; simpl.
-    + rewrite bi.sep_exist_r.
-      apply (IHΠ (λ i, P i ∗ bunch_interp Δ2)%I).
-    + rewrite bi.and_exist_r.
-      apply (IHΠ (λ i, P i ∧ bunch_interp Δ2)%I).
-    + rewrite bi.sep_exist_l.
-      apply (IHΠ (λ i, bunch_interp Δ1 ∗ P i)%I).
-    + rewrite bi.and_exist_l.
-      apply (IHΠ (λ i, bunch_interp Δ1 ∧ P i)%I).
-  Qed.
-
-  Global Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.
-  Proof.
-    intros Δ1 Δ2. induction 1; eauto.
-    - etrans; eassumption.
-    - apply bi.equiv_entails_2.
-      + apply bunch_interp_fill_mono; eauto.
-        by apply bi.equiv_entails_1_1.
-      + apply bunch_interp_fill_mono; eauto.
-        by apply bi.equiv_entails_1_2.
-    - simpl. destruct s0; by rewrite left_id.
-    - simpl. destruct s0; by rewrite comm.
-    - simpl. destruct s0; by rewrite assoc.
-  Qed.
-
-  Global Instance bunch_ctx_interp_mono Π : Proper ((⊢) ==> (⊢)) (bunch_ctx_interp Π).
-  Proof.
-    induction Π as [|F Π]=>P1 P2 HP; first by simpl; auto.
-    rewrite !bunch_ctx_interp_cons.
-    apply IHΠ.
-    destruct F as [[|] ? | [|] ?]; simpl; f_equiv; eauto.
-  Qed.
-
   Global Instance seq_interp_proper : Proper ((≡) ==> (=) ==> (≡)) seq_interp.
   Proof.
     intros Δ1 Δ2 HΔ ϕ ? <-. rewrite /seq_interp /=.
@@ -159,6 +53,4 @@ Section interp.
 End interp.
 
 Arguments formula_interp {_} _ _.
-Arguments bunch_interp {_} _ _.
 Arguments seq_interp {_} _ _ _.
-Arguments sep_interp {_} _ _ _.

@@ -1,7 +1,7 @@
 (** Analytic completion of a structural rule *)
 From Coq Require Import ssreflect.
 From bunched.algebra Require Import bi.
-From bunched Require Import syntax interp terms prelude.sets.
+From bunched Require Import bunches terms prelude.sets.
 From stdpp Require Import prelude base gmap fin_sets.
 
 Section analytic_completion.
