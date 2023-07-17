@@ -159,16 +159,10 @@ Proof.
 Qed.
 
 (** * Interpretation *)
-(** Associated with the set of rules:
-     when is the set of rules is valid in an algebra? *)
-Definition rule_valid (PROP : bi) (Ts : list bterm) (T : bterm) :=
-  ∀ (Xs : nat → PROP),
-    bterm_alg_act T Xs ⊢
-       ∃ Ti' : {Ti : bterm | Ti ∈ Ts }, bterm_alg_act (proj1_sig Ti') Xs.
 
 (** Sequent calculus is sound w.r.t. the BI algebras. *)
 Theorem seq_interp_sound {PROP : bi} (s : atom → PROP) Δ ϕ :
-  (∀ Ts T, (Ts, T) ∈ rules → rule_valid PROP Ts T) →
+  (∀ s, s ∈ rules → rule_valid s PROP) →
   (Δ ⊢ᴮ ϕ) →
   seq_interp s Δ ϕ.
 Proof.
@@ -180,16 +174,17 @@ Proof.
       by rewrite bi.and_elim_l.
   - apply bunch_interp_fill_mono; simpl.
     apply bi.and_intro; eauto.
-  - assert (rule_valid PROP Ts T) as HH.
+  - assert (rule_valid (Ts,T) PROP) as HH.
     { eapply Hrules; auto. }
     specialize (HH (bunch_interp (formula_interp s) ∘ Δs)).
     rewrite bunch_ctx_interp_decomp.
     rewrite bterm_ctx_alg_act.
     rewrite HH.
     rewrite bunch_ctx_interp_exist.
-    apply bi.exist_elim=>Ti'.
-    destruct Ti' as [Ti HTi].
+    apply bi.exist_elim=>Ti.
     rewrite -bterm_ctx_alg_act.
+    rewrite bunch_ctx_interp_pure.
+    apply bi.pure_elim_l. intros HTi.
     rewrite -bunch_ctx_interp_decomp.
     by apply H1.
   - by rewrite IHproves1 IHproves2.
@@ -207,7 +202,7 @@ Proof.
   - by apply bi.or_intro_l.
   - by apply bi.or_intro_r.
   - rewrite bunch_ctx_interp_decomp. simpl.
-    trans (bunch_ctx_interp PROP (formula_interp s) Π (∃ (x : bool), if x then bunch_interp (formula_interp s) (frml ϕ) else bunch_interp (formula_interp s) (frml ψ))).
+    trans (bunch_ctx_interp (formula_interp s) Π (∃ (x : bool), if x then bunch_interp (formula_interp s) (frml ϕ) else bunch_interp (formula_interp s) (frml ψ))).
     { apply bunch_ctx_interp_mono.
       apply bi.or_elim.
       - by eapply (bi.exist_intro' _ _ true).

@@ -169,7 +169,7 @@ Section interp.
     | bbin sp Δ Δ' => sep_interp sp (bunch_interp Δ) (bunch_interp Δ')
     end%B%I.
 
-    Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
+  Definition bunch_ctx_item_interp (F : bunch_ctx_item) : PROP → PROP :=
     λ P, match F with
         | CtxL sp Δ => sep_interp sp P (bunch_interp Δ)
         | CtxR sp Δ => sep_interp sp (bunch_interp Δ) P
@@ -259,8 +259,32 @@ Section interp.
     destruct F as [[|] ? | [|] ?]; simpl; f_equiv; eauto.
   Qed.
 
+  Lemma bunch_ctx_item_interp_pure F P Q :
+    bunch_ctx_item_interp F (⌜P⌝ ∧ Q) ⊢ ⌜P⌝ ∧ bunch_ctx_item_interp F Q.
+  Proof.
+    destruct F as [[|] ? | [|] ?]; simpl.
+    - rewrite bi.sep_and_r. f_equiv.
+      apply bi.pure_sep_l.
+    - by rewrite assoc.
+    - rewrite bi.sep_and_l. f_equiv.
+      rewrite comm.
+      apply bi.pure_sep_l.
+    - rewrite assoc. rewrite (comm _ _ ⌜P⌝%I).
+      by rewrite assoc.
+  Qed.
+
+  Lemma bunch_ctx_interp_pure Π P Q :
+    bunch_ctx_interp Π (⌜P⌝ ∧ Q) ⊢ ⌜P⌝ ∧ bunch_ctx_interp Π Q.
+  Proof.
+    revert Q. induction Π as [|F Π]=>Q; first by simpl; auto.
+    rewrite !bunch_ctx_interp_cons.
+    rewrite bunch_ctx_item_interp_pure.
+    apply IHΠ.
+  Qed.
+
 End interp.
 
 Arguments sep_interp {_} _ _ _.
 Arguments bunch_interp {_ _} _ _.
+Arguments bunch_ctx_interp {_ _} _ _ _.
 

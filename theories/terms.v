@@ -125,9 +125,7 @@ Definition structural_rule := (list (bterm nat) * bterm nat)%type.
 Definition is_analytical (s : structural_rule) := linear_bterm (snd s).
 Definition rule_valid (s : structural_rule) (PROP : bi) : Prop :=
   ∀ (Xs : nat → PROP),
-    bterm_alg_act (snd s) Xs ⊢
-       ∃ Ti' : {Ti : bterm nat | Ti ∈ fst s }, bterm_alg_act (proj1_sig Ti') Xs.
-
+    bterm_alg_act (snd s) Xs ⊢ ∃ Ti, ⌜Ti ∈ fst s⌝ ∧ bterm_alg_act Ti Xs.
 
 (** * Properties *)
 

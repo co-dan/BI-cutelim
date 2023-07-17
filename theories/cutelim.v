@@ -466,9 +466,10 @@ Proof.
 Qed.
 
 (** All the simple structural rules are valid in [C] *)
-Lemma C_extensions (Ts : list (bterm nat)) (T : bterm nat) :
-    (Ts, T) ∈ M.rules → rule_valid C_alg Ts T.
+Lemma C_extensions s :
+    s ∈ M.rules → rule_valid s C_alg.
 Proof.
+  destruct s as [Ts T].
   intros Hs. unfold rule_valid.
   intros Xs.
   trans (bterm_alg_act (PROP:=C_alg) T
@@ -484,9 +485,11 @@ Proof.
   destruct H1 as (Δs & HΔs & H1).
   rewrite H1. eapply (BI_Simple_Ext []); eauto.
   intros Ti HTi. simpl. apply (Hϕ _).
-  exists (Ti ↾ HTi). simpl. eapply bterm_C_refl.
-  intros i. specialize (HΔs i). revert HΔs.
-  simpl. generalize (Xs i)=>X. apply X.
+  exists Ti. split.
+  - by apply C_elemof_pure.
+  - eapply bterm_C_refl.
+    intros i. specialize (HΔs i). revert HΔs.
+    simpl. generalize (Xs i)=>X. apply X.
 Qed.
 
 (** * Cut admissibility *)

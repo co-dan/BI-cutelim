@@ -270,12 +270,13 @@ Proof.
   intros H1 Xs.
   rewrite - linearize_bterm_act_ren.
   rewrite H1. apply bi.exist_elim=>Ti.
-  destruct Ti as [Ti HTi]. simpl.
+  apply bi.pure_elim_l. intros HTi.
   apply elem_of_list_join in HTi.
   destruct HTi as [L [HTi HL]].
   apply elem_of_list_fmap_2 in HL.
   destruct HL as [Tz [-> HTz]].
-  apply (bi.exist_intro' _ _  (Tz ↾ HTz)).
+  apply (bi.exist_intro' _ _  Tz).
+  rewrite bi.pure_True // left_id.
   simpl in *. apply elem_of_elements in HTi.
   eapply transformed_premise_act_ren in HTi.
   by rewrite HTi.
@@ -290,7 +291,7 @@ Proof.
   intros H1 Xs.
   rewrite linearize_bterm_act.
   rewrite H1. apply bi.exist_elim=>Ti.
-  destruct Ti as [Ti HTi]. simpl.
+  apply bi.pure_elim_l. intros HTi.
   rewrite bterm_alg_act_disj_ren_inverse_transform.
   apply bi.exist_elim=>Tk. apply bi.pure_elim_l=>Htk.
   assert (Tk ∈ mjoin (fmap (elements ∘ transform_premise s) Ts)) as Tk'.
@@ -299,5 +300,6 @@ Proof.
     - by apply elem_of_elements.
     - rewrite list_fmap_compose.
       by do 2 apply elem_of_list_fmap_1. }
-  apply (bi.exist_intro' _ _  (Tk ↾ Tk')); done.
+  apply (bi.exist_intro' _ _  Tk).
+  rewrite bi.pure_True// left_id//.
 Qed.

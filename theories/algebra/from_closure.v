@@ -507,6 +507,16 @@ Section FromClosure.
     apply bi.wand_intro_l. apply cl_unit.
   Qed.
 
+  Lemma C_elemof_pure (P : Prop) Δ : P → Δ ∈ (C_pure P).
+  Proof.
+    intros HP.
+    cut (True ⊢@{PM} CPred (C_pure P))%I.
+    - intros inc. specialize (inc Δ).
+      apply inc. done.
+    - trans (cl True)%I.
+      { apply (cl_unit _). }
+      apply cl_mono. intros ? ?. done.
+  Qed.
 
 End FromClosure.
 
