@@ -29,11 +29,11 @@ Example rule_restr_weakn_a := analytic_completion rule_restr_weakn.
 Eval vm_compute in rule_restr_weakn_a.
 
 Section analytic_completion_correct.
-  Variable (s : structural_rule).
   Context {PROP : bi}.
   Implicit Type Xs Ys : nat → PROP.
   Implicit Type n k m : nat.
 
+  Variable (s : structural_rule).
   Local Notation ren_inverse := (ren_inverse s).
   Local Notation transform_premise := (transform_premise s).
   Local Notation T := (snd s).
@@ -41,7 +41,7 @@ Section analytic_completion_correct.
 
   Definition disj_ren_inverse Xs : nat → PROP := λ n, (∃ k, ⌜k ∈ ren_inverse !!! n⌝ ∧ Xs k)%I.
 
-  Definition linearize_bterm_ren_act Xs : nat → PROP :=
+  Definition linearize_bterm_ren_act T Xs : nat → PROP :=
     λ (n : nat), Xs (linearize_bterm_ren T !!! n).
 
   Lemma ren_ren_inverse i j :
@@ -49,6 +49,47 @@ Section analytic_completion_correct.
   Proof.
     rewrite /ren_inverse. rewrite lookup_total_preimage.
     apply lookup_total_correct.
+  Qed.
+
+  Lemma linearize_bterm_act_ren T Xs:
+    bterm_alg_act (linearize_bterm T) (linearize_bterm_ren_act T Xs) ≡ bterm_alg_act T Xs.
+  Proof.
+    rewrite /linearize_bterm_ren_act /linearize_bterm_ren /linearize_bterm.
+    generalize 0.
+    induction T as [x | sp T1 IHT1 T2 IHT2]=>i; simpl.
+    - by rewrite lookup_total_singleton.
+    - specialize (IHT1 i).
+      destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
+      specialize (IHT2 i1).
+      destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2.
+      assert (term_fv T1' ⊆ set_seq i (i1-i)).
+      { replace T1' with (snd (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_fv. }
+      assert (term_fv T2' ⊆ set_seq i1 (i2-i1)).
+      { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_fv. }
+      assert (dom m1 = set_seq i (i1-i)) as Hm1.
+      { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
+        apply linearize_pre_dom. }
+      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
+      { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
+        apply linearize_pre_dom. }
+      simpl. repeat split; eauto.
+      rewrite -IHT1 -IHT2. f_equiv.
+      + eapply bterm_alg_act_fv.
+        intros j Hj.
+        assert ((m1 ∪ m2) !!! j = m1 !!! j) as ->; eauto.
+        unfold lookup_total, map_lookup_total. f_equiv.
+        apply lookup_union_l', elem_of_dom. rewrite Hm1. set_solver by lia.
+      + eapply bterm_alg_act_fv.
+        intros j Hj.
+        assert ((m1 ∪ m2) !!! j = m2 !!! j) as ->; eauto.
+        unfold lookup_total, map_lookup_total. f_equiv.
+        apply lookup_union_r. apply not_elem_of_dom. rewrite Hm1. set_solver by lia.
   Qed.
 
   Lemma linearize_bterm_act Xs :
@@ -88,8 +129,8 @@ Section analytic_completion_correct.
         intro. by apply lookup_union_Some_r. }
   Qed.
 
-  Lemma bterm_alg_act_renaming'' Tz Xs :
-    bterm_alg_act Tz (linearize_bterm_ren_act Xs) ≡ bterm_alg_act ((λ n, linearize_bterm_ren T !!! n) <$> Tz) Xs.
+  Lemma bterm_alg_act_renaming'' T Tz Xs :
+    bterm_alg_act Tz (linearize_bterm_ren_act T Xs) ≡ bterm_alg_act ((λ n, linearize_bterm_ren T !!! n) <$> Tz) Xs.
   Proof.
     rewrite /linearize_bterm_ren_act.
     induction Tz as [x | [] T1 IHT1 T2 IHT2]; eauto; simpl; by f_equiv.
@@ -188,7 +229,7 @@ Section analytic_completion_correct.
   Qed.
 
   Lemma transformed_premise_act_ren Tz' Tz Xs :
-    Tz' ∈ transform_premise Tz → bterm_alg_act Tz' (linearize_bterm_ren_act Xs) ≡ bterm_alg_act Tz Xs.
+    Tz' ∈ transform_premise Tz → bterm_alg_act Tz' (linearize_bterm_ren_act T Xs) ≡ bterm_alg_act Tz Xs.
   Proof.
     rewrite /transform_premise.
     intros H1.
@@ -197,8 +238,6 @@ Section analytic_completion_correct.
     rewrite /bterm_gset_fmap.
     rewrite -(bterm_fmap_compose (λ j : nat, ren_inverse !!! (linearize_bterm_ren Tz !!! j))).
     rewrite bterm_alg_act_renaming''.
-    intros H1. f_equiv.
-    revert H1.
     pose (Tz'' := (λ n, linearize_bterm_ren T !!! n) <$> Tz').
     fold Tz''. intros HTz''.
     assert (Tz'' ∈ bterm_gset_fold
@@ -213,86 +252,11 @@ Section analytic_completion_correct.
          → g i = (linearize_bterm_ren Tz !!! i)) as HHH.
     { intros i Hi. apply elem_of_map_ren_ren_inverse.
       by eapply Hg. }
-    clear Hg. revert HHH.
-    rewrite /(linearize_bterm_ren Tz) /(linearize_bterm Tz).
-    generalize 0.
-    induction Tz as [x | sp T1 IHT1 T2 IHT2]=>i; simpl.
-    - intros H1. f_equiv.
-      etrans. { apply H1. by apply elem_of_singleton. }
-      apply lookup_total_singleton.
-    - intros H1.
-      specialize (IHT1 i).
-      destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
-      specialize (IHT2 i1).
-      destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2.
-      assert (term_fv T1' ⊆ set_seq i (i1-i)).
-      { replace T1' with (snd (linearize_pre T1 i)) by rewrite Ht1 //.
-        replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        apply linearize_pre_fv. }
-      assert (term_fv T2' ⊆ set_seq i1 (i2-i1)).
-      { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
-        replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        apply linearize_pre_fv. }
-      assert (dom m1 = set_seq i (i1-i)) as Hm1.
-      { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        apply linearize_pre_dom. }
-      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
-      { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        apply linearize_pre_dom. }
-      simpl. f_equiv.
-      { apply IHT1. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
-        - apply H1. set_solver.
-        - rewrite !lookup_total_alt. f_equiv.
-          apply lookup_union_l'.
-          apply elem_of_dom. rewrite Hm1. naive_solver. }
-      { apply IHT2. intros j Hj. simpl in *. trans ((m1 ∪ m2) !!! j).
-        - apply H1. set_solver.
-        - rewrite !lookup_total_alt. f_equiv.
-          apply lookup_union_r. apply not_elem_of_dom.
-          rewrite Hm1. set_unfold. naive_solver lia. }
-  Qed.
-
-  Lemma linearize_bterm_act_ren Xs:
-    bterm_alg_act (linearize_bterm T) (linearize_bterm_ren_act Xs) ≡ bterm_alg_act T Xs.
-  Proof.
-    rewrite /linearize_bterm_ren_act /linearize_bterm_ren /linearize_bterm.
-    generalize 0.
-    induction T as [x | sp T1 IHT1 T2 IHT2]=>i; simpl.
-    - by rewrite lookup_total_singleton.
-    - specialize (IHT1 i).
-      destruct (linearize_pre T1 i) as [[i1 m1] T1'] eqn:Ht1.
-      specialize (IHT2 i1).
-      destruct (linearize_pre T2 i1) as [[i2 m2] T2'] eqn:Ht2.
-      assert (term_fv T1' ⊆ set_seq i (i1-i)).
-      { replace T1' with (snd (linearize_pre T1 i)) by rewrite Ht1 //.
-        replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        apply linearize_pre_fv. }
-      assert (term_fv T2' ⊆ set_seq i1 (i2-i1)).
-      { replace T2' with (snd (linearize_pre T2 i1)) by rewrite Ht2 //.
-        replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        apply linearize_pre_fv. }
-      assert (dom m1 = set_seq i (i1-i)) as Hm1.
-      { replace i1 with (fst $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        replace m1 with (snd $ fst (linearize_pre T1 i)) by rewrite Ht1 //.
-        apply linearize_pre_dom. }
-      assert (dom m2 = set_seq i1 (i2-i1)) as Hm2.
-      { replace i2 with (fst $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        replace m2 with (snd $ fst (linearize_pre T2 i1)) by rewrite Ht2 //.
-        apply linearize_pre_dom. }
-      simpl. repeat split; eauto.
-      rewrite -IHT1 -IHT2. f_equiv.
-      + eapply bterm_alg_act_fv.
-        intros j Hj.
-        assert ((m1 ∪ m2) !!! j = m1 !!! j) as ->; eauto.
-        unfold lookup_total, map_lookup_total. f_equiv.
-        apply lookup_union_l', elem_of_dom. rewrite Hm1. set_solver by lia.
-      + eapply bterm_alg_act_fv.
-        intros j Hj.
-        assert ((m1 ∪ m2) !!! j = m2 !!! j) as ->; eauto.
-        unfold lookup_total, map_lookup_total. f_equiv.
-        apply lookup_union_r. apply not_elem_of_dom. rewrite Hm1. set_solver by lia.
+    clear Hg.
+    rewrite -(linearize_bterm_act_ren Tz).
+    rewrite bterm_alg_act_renaming''.
+    f_equiv.
+    apply bterm_fmap_ext; eauto.
   Qed.
 
 End analytic_completion_correct.
