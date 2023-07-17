@@ -1,762 +1,327 @@
 (* Semantic proof of cut elimination.. *)
 From Coq Require Import ssreflect.
 From stdpp Require Import prelude.
-From bunched.algebra Require Import bi.
+From bunched.algebra Require Import bi from_monoid from_closure.
 From bunched.s4 Require Import formula seqcalc_height seqcalc interp.
 From bunched Require Import bunches.
 Notation bunch := (@bunch formula).
 
-
-(** The first algebra that we consider is a purely "combinatorial" one:
-    predicates [(bunch/≡) → Prop] *)
-Module PB.
-
-  Record PB := MkPB {
-    PBPred :> bunch → Prop;
-    PBPred_proper : Proper ((≡) ==> (iff)) PBPred;
-  }.
-  Arguments MkPB _%B {_}.
-  Global Existing Instance PBPred_proper.
-
-  Global Instance PB_equiv : Equiv PB := λ X Y,
-     (∀ Δ, X Δ ↔ Y Δ).
-  Global Instance PB_equiv_equivalence : Equivalence (≡@{PB}).
-  Proof.
-    rewrite /equiv /PB_equiv.
-    split; repeat intro; naive_solver.
-  Qed.
-
-  Definition PB_entails (X Y : PB) : Prop :=
-    ∀ Δ, X Δ → Y Δ.
-
-  Program Definition PB_and (X Y : PB) : PB :=
-    {| PBPred := (λ Δ, X Δ ∧ Y Δ) |}.
-  Next Obligation. solve_proper. Qed.
-
-  Program Definition PB_impl (X Y : PB) : PB :=
-    {| PBPred := (λ Δ, X Δ → Y Δ) |}.
-  Next Obligation.
-    intros X Y Δ Δ' HΔ. rewrite HΔ.
-    eauto.
-  Qed.
-
-  Program Definition PB_emp : PB :=
-    {| PBPred := (λ Δ, Δ ≡ ∅ₘ)%B |}.
-  Next Obligation. solve_proper. Qed.
-
-  Program Definition PB_sep (X Y : PB) : PB :=
-    {| PBPred := (λ Δ, ∃ Δ1 Δ2, X Δ1 ∧ Y Δ2 ∧ (Δ ≡ (Δ1 ,, Δ2)%B)) |}.
-  Next Obligation. solve_proper. Qed.
-
-  Program Definition PB_wand (X Y : PB) : PB :=
-    @MkPB (λ Δ, ∀ Δ1, X Δ1 → Y (Δ ,, Δ1)%B) _.
-  Next Obligation.
-    intros X Y Δ Δ' HΔ. by setoid_rewrite HΔ.
-  Qed.
-
-  Definition PB_pure (ϕ : Prop) : PB := MkPB (λ _, ϕ).
-
-  Program Definition PB_or (X Y : PB) : PB :=
-    {| PBPred := (λ Δ, X Δ ∨ Y Δ)%B |}.
-  Next Obligation. solve_proper. Qed.
-
-  Program Definition PB_forall (A : Type) (DD : A → PB) : PB :=
-    @MkPB (λ Δ, ∀ (a : A), DD a Δ) _.
-  Next Obligation.
-    intros A DD Δ Δ' HΔ. by setoid_rewrite HΔ.
-  Qed.
-
-  Program Definition PB_exists (A : Type) (PBPB : A → PB) : PB :=
-    @MkPB (λ Δ, ∃ (a : A), PBPB a Δ) _.
-  Next Obligation.
-    intros A PBPB Δ Δ' HΔ. by setoid_rewrite HΔ.
-  Qed.
-
-  Local Infix "⊢" := PB_entails.
-  Local Notation "'emp'" := PB_emp.
-  Local Infix "∗" := PB_sep.
-  Local Infix "-∗" := PB_wand.
-  Local Infix "∧" := PB_and.
-
-  Lemma sep_mono P P' Q Q' :
-    (P ⊢ Q) → (P' ⊢ Q') → P ∗ P' ⊢ Q ∗ Q'.
-  Proof.
-    intros H1 H2 Δ.
-    destruct 1 as (Δ1 & Δ2 & HΔ1 & HΔ2 & H3).
-    do 2 eexists. repeat split; eauto.
-  Qed.
-  Lemma emp_sep_1 P : P ⊢ emp ∗ P.
-  Proof.
-    intros Δ HP. compute.
-    eexists ∅ₘ%B,_. repeat split.
-    - done.
-    - eapply HP.
-    - by rewrite left_id.
-  Qed.
-  Lemma emp_sep_2 P : emp ∗ P ⊢ P.
-  Proof.
-    intros Δ HP. compute in HP.
-    destruct HP as (Δ1 & Δ2 & H1 & H2 & ->).
-    rewrite H1. by rewrite left_id.
-  Qed.
-  Lemma sep_comm' P Q : P ∗ Q ⊢ Q ∗ P.
-  Proof.
-    intros Δ (Δ1 & Δ2 & H1 & H2 & ->).
-    rewrite (comm _ Δ1 Δ2).
-    do 2 eexists. repeat split; eauto.
-  Qed.
-  Lemma sep_assoc' P Q R : (P ∗ Q) ∗ R ⊢ P ∗ (Q ∗ R).
-  Proof.
-    intros Δ (Δ1' & Δ3 & (Δ1 & Δ2 & H1 & H2 & H4) & H3 & ->).
-    rewrite H4. rewrite -(assoc _ Δ1 Δ2 Δ3).
-    do 2 eexists. repeat split; eauto.
-    do 2 eexists. repeat split; eauto.
-  Qed.
-  Lemma wand_intro_r P Q R : (P ∗ Q ⊢ R) → P ⊢ Q -∗ R.
-  Proof.
-    intros HH Δ HP.
-    intros Δ' HQ. eapply HH.
-    do 2 eexists. repeat split; eauto.
-  Qed.
-  Lemma wand_elim_l' P Q R : (P ⊢ Q -∗ R) → P ∗ Q ⊢ R.
-  Proof.
-    intros HH Δ (Δ1 & Δ2 & H1 & H2 & ->).
-    by eapply HH.
-  Qed.
-
-  Global Instance entails_preorder : PreOrder PB_entails.
-  Proof. split; compute; naive_solver. Qed.
-
-  Lemma PB_bi_mixin : BiMixin (PROP:=PB)
-                              PB_entails PB_emp PB_pure PB_and PB_or
-                              PB_impl PB_forall PB_exists PB_sep PB_wand.
-  Proof.
-    split; try by (compute; naive_solver).
-    - apply _.
-    - apply _.
-    - apply emp_sep_1.
-    - apply emp_sep_2.
-    - apply sep_comm'.
-    - apply sep_assoc'.
-    - apply wand_elim_l'.
-    (* - apply box_sep_elim. *)
-  Qed.
-
-
-  Canonical Structure PB_alg : bi :=
-    {| bi_bi_mixin := PB_bi_mixin; |}.
-
-End PB.
-
-Module Cl.
-  Import PB.
-
-  Program Definition Fint (ϕ : formula) : PB :=
-    {| PBPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
-  Next Obligation. solve_proper. Qed.
-
-  Definition ClBase := { X : PB | ∃ ϕ, X ≡ Fint ϕ }.
-
-  Program Definition cl (X : PB) : PB :=
-    @MkPB (λ Δ, ∀ (ϕ : formula), ((X : PB_alg) ⊢ Fint ϕ) → Δ ⊢ᴮ ϕ) _.
-  Next Obligation.
-    intros X Δ1 Δ2 HD. by setoid_rewrite HD.
-  Qed.
-
-  Lemma cl_unit X : X ⊢ cl (X : PB_alg).
-  Proof.
-    intros Δ Hx. simpl. intros ϕ Hϕ.
-    by apply Hϕ.
-  Qed.
-
-  Lemma cl_mono (X Y : PB) : (X ⊢@{PB_alg} Y) → (cl X ⊢@{PB_alg} cl Y).
-  Proof.
-    intros HX Δ. simpl. intros H1 ϕ HY.
-    eapply H1. by rewrite HX.
-  Qed.
-
-  Lemma cl_idemp (X : PB) : cl (cl X) ≡ cl X.
-  Proof.
-    split; last first.
-    { eapply cl_unit. }
-    simpl. intros H1 ϕ HX.
-    eapply H1. intros Δ'. simpl.
-    intros H2. by eapply H2.
-  Qed.
-
-  Lemma cl_alt_eq (X : PB) :
-    (cl X : PB) ≡
-      (∀ Z : { ϕ : formula | X ⊢@{PB_alg} Fint ϕ },
-          Fint (proj1_sig Z) : PB_alg)%I.
-  Proof.
-    split.
-    - simpl. intros H1.
-      rewrite /bi_forall/PB_forall /=.
-      intros [ϕ Hϕ]. simpl. by eapply H1.
-    - simpl. intros H1 ϕ HX.
-      apply (H1 (ϕ ↾ HX)).
-  Qed.
-
-  Global Instance cl_proper : Proper ((≡) ==> (≡)) cl.
-  Proof.
-    intros X Y HXY.
-    split; eapply cl_mono; by rewrite HXY.
-  Qed.
-
-  Class Is_closed (X : PB) := closed_eq_cl : X ≡ cl X.
-
-  Global Instance Is_closed_proper : Proper ((≡) ==> (↔)) Is_closed.
-  Proof.
-    intros X Y HXY. unfold Is_closed.
-    by rewrite HXY.
-  Qed.
-
-  Lemma Is_closed_inc (X : PB) :
-    ((cl X : PB_alg) ⊢ X) → Is_closed X.
-  Proof.
-    intros H1. unfold Is_closed.
-    split.
-    - eapply cl_unit.
-    - eapply H1.
-  Qed.
-
-  Record C :=
-    { CPred :> PB ; CPred_closed : Is_closed CPred }.
-  Global Existing Instance CPred_closed.
-  Global Instance CPred_proper (X : C) : Proper ((≡) ==> (↔)) X.
-  Proof.
-    intros D1 D2 HD.
-    by apply PBPred_proper.
-  Qed.
-
-  Lemma C_intro (X : C) Δ :
-    (∀ ϕ, (X ⊢@{PB_alg} Fint ϕ) → Δ ⊢ᴮ ϕ) →
-    X Δ.
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros H1. rewrite Xcl. done.
-  Qed.
-
-  Program Definition Fint' ϕ : C :=
-    {| CPred := Fint ϕ |}.
-  Next Obligation.
-    intros ϕ. apply Is_closed_inc.
-    intros Δ Hcl. simpl. eapply Hcl.
-    eauto.
-  Qed.
-
-  Lemma cl_alt_eq_2 (X : PB) :
-    (cl X : PB) ≡
-      (∀ Z : { Y : C | X ⊢@{PB_alg} Y }, `Z : PB_alg)%I.
-  Proof.
-    split.
-    - simpl. intros H1.
-      rewrite /bi_forall/PB_forall /=.
-      intros [[Y HY] HXY]. simpl.
-      rewrite HY. intros ϕ Hϕ.
-      eapply H1. rewrite -Hϕ. eapply HXY.
-    - simpl. intros H1 ϕ HX.
-      apply (H1 (Fint' ϕ ↾ HX)).
-  Qed.
-
-  Lemma cl_alt_eq_3 (X : PB) :
-    (cl X : PB) ≡
-      (∀ Y : C, (⌜X ⊢@{PB_alg} Y⌝) → Y : PB_alg)%I.
-  Proof.
-    rewrite cl_alt_eq_2.
-    split.
-    - intros H1. rewrite /bi_forall /bi_impl /=.
-      intros Y HXY. simpl.
-      apply (H1 (Y ↾ HXY)).
-    - intros H1. rewrite /bi_forall /bi_impl /=.
-      intros [Y HXY]. simpl. apply H1.
-      apply HXY.
-  Qed.
-
-  Lemma C_necessitate (X : C) Δ :
-    X Δ → X (fmap BOX Δ).
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros HX. rewrite Xcl.
-    intros ϕ Hϕ. eapply (BI_Boxes_L []).
-    by apply Hϕ.
-  Qed.
-
-  Lemma C_bunch_box_idemp (X : C) Δ :
-    X (fmap BOX (fmap BOX Δ)) → X (fmap BOX Δ).
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros HX. rewrite Xcl.
-    intros ϕ Hϕ. eapply (box_l_inv []).
-    by apply Hϕ.
-  Qed.
-
-  Lemma C_weaken (X : C) Δ Δ' :
-    X Δ → X (Δ ;, Δ')%B.
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros HX. rewrite Xcl.
-    intros ϕ Hϕ.
-    eapply (BI_Weaken []). simpl.
-    by apply Hϕ.
-  Qed.
-
-  Lemma C_contract (X : C) Δ :
-    X (Δ ;, Δ)%B → X Δ.
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    intros HX. rewrite Xcl.
-    intros ϕ Hϕ.
-    eapply (BI_Contr []). simpl.
-    by apply Hϕ.
-  Qed.
-
-  Lemma C_collapse (X : C) Γ Δ :
-    X (fill Γ Δ) → X (fill Γ (frml (collapse Δ))).
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    revert Γ. induction Δ=>Γ; simpl; eauto.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      destruct s; by econstructor; apply Hϕ.
-    - intros HX. rewrite Xcl=>ϕ Hϕ.
-      destruct s.
-      + apply BI_Sep_L, Hϕ.
-        apply (IHΔ1 (CtxCommaL _::Γ)); simpl.
-        apply (IHΔ2 (CtxCommaR _::Γ)); simpl.
-        apply HX.
-      + apply BI_Conj_L, Hϕ.
-        apply (IHΔ1 (CtxSemicL _::Γ)); simpl.
-        apply (IHΔ2 (CtxSemicR _::Γ)); simpl.
-        apply HX.
-  Qed.
-
-  Lemma C_collapse_inv (X : C) Γ Δ :
-    X (fill Γ (frml (collapse Δ))) → X (fill Γ Δ).
-  Proof.
-    destruct X as [X Xcl]. simpl.
-    rewrite !Xcl. intros HX ϕ Hϕ.
-    simpl in HX. apply BI_Collapse_L_inv.
-    by apply HX.
-  Qed.
-
-  Program Definition cl' (X : PB) : C :=
-    {| CPred := cl X |}.
-  Next Obligation.
-    intros X. unfold Is_closed. by rewrite cl_idemp.
-  Qed.
-
-  Global Instance C_equiv : Equiv C := PB_equiv.
-  Global Instance C_equiv_equivalence : Equivalence (≡@{C}).
-  Proof.
-    rewrite /equiv /C_equiv /PB_equiv.
-    split; repeat intro; naive_solver.
-  Qed.
-
-  Definition C_entails (X Y : C) : Prop := PB.PB_entails X Y.
-
-  Global Instance C_entail_proper : Proper ((≡) ==> (≡) ==> (↔)) C_entails.
-  Proof.
-    intros X1 X2 HX Y1 Y2 HY. unfold C_entails.
-    split.
-    - intros H1 Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      naive_solver.
-    - intros H1 Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      naive_solver.
-  Qed.
-
-  Program Definition C_and (X Y : C) : C :=
-    {| CPred := ((X : PB_alg) ∧ Y)%I |}.
-  Next Obligation.
-    intros [X HX] [Y HY]. apply Is_closed_inc.
-    rewrite /bi_and /=.
-    intros Δ HΔ. split.
-    + rewrite HX. intros ψ H'. eapply HΔ.
-      rewrite -H'. intros ?. simpl. naive_solver.
-    + rewrite HY. intros ψ H'. eapply HΔ.
-      rewrite -H'. intros ?. simpl. naive_solver.
-  Qed.
-
-  Program Definition C_forall (A : Type) (CC : A → C) : C :=
-    {| CPred := PB_forall A CC |}.
-  Next Obligation.
-    intros A CC.
-    apply Is_closed_inc.
-    eapply bi.forall_intro=>a.
-    rewrite cl_alt_eq_3.
-    rewrite (bi.forall_elim (CC a)).
-    intros Δ H1. apply H1.
-    rewrite /bi_pure /=.
-    clear. by rewrite (bi.forall_elim a).
-  Qed.
-
-  Program Definition PB_impl' (X Y : PB) : PB :=
-    @MkPB (λ Δ, ∀ Δ', X Δ' → Y (Δ ;, Δ')%B) _.
-  Next Obligation.
-    intros X Y D1 D2 H1. by setoid_rewrite H1.
-  Qed.
-
-  Program Definition C_impl (X : PB) (Y : C) : C :=
-    {| CPred := PB_impl' X Y |}.
-  Next Obligation.
-    intros X Y.
-    cut (PB_impl' X Y ≡
-            @C_forall ({ Δ | X Δ } * { ϕ : formula | Y ⊢@{PB_alg} Fint ϕ })
-            (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)))).
-    { intros ->. by apply CPred_closed. }
-    intro Δ. simpl. split.
-    - intros HXY. intros ([Δ' HX], [ϕ Hϕ]).
-      simpl. apply BI_Impl_R.
-      apply Hϕ.
-      apply (C_collapse _ [CtxSemicR Δ]).
-      simpl. by apply HXY.
-    - intros H Δ' HX.
-      destruct Y as [Y Yc]. simpl.
-      rewrite Yc. intros ψ Hψ.
-      specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
-      apply impl_r_inv in H.
-      by apply (BI_Collapse_L_inv [CtxSemicR Δ]).
-  Qed.
-
-  Definition C_emp : C := cl' PB_emp.
-
-  Program Definition C_sep (X Y : C) : C := cl' (PB_sep X Y).
-
-  Program Definition C_or (X Y : C) : C := cl' (PB_or X Y).
-
-  Program Definition C_exists (A : Type) (CC : A → C) : C :=
-    cl' (PB_exists A CC).
-
-  Program Definition C_wand (X : PB) (Y : C) : C :=
-    {| CPred := PB_wand X Y |}.
-  Next Obligation.
-    intros X Y.
-    cut (PB_wand X Y ≡
-            @C_forall ({ Δ | X Δ } * { ϕ : formula | Y ⊢@{PB_alg} Fint ϕ })
-            (λ '(Δ, ϕ), Fint' (WAND (collapse (`Δ)) (`ϕ)))).
-    { intros ->. by apply CPred_closed. }
-    intro Δ. simpl. split.
-    - intros HXY. intros ([Δ' HX], [ϕ Hϕ]).
-      simpl. apply BI_Wand_R.
-      apply Hϕ.
-      apply (C_collapse _ [CtxCommaR Δ]).
-      simpl. by apply HXY.
-    - intros H Δ' HX.
-      destruct Y as [Y Yc]. simpl.
-      rewrite Yc. intros ψ Hψ.
-      specialize (H ((Δ' ↾ HX), (ψ ↾ Hψ))). simpl in *.
-      apply wand_r_inv in H.
-      by apply (BI_Collapse_L_inv [CtxCommaR Δ]).
-  Qed.
-
-  Program Definition PB_box (X: PB) : PB :=
-    {| PBPred := λ Δ, ∃ Δ', Δ ≡ fmap BOX Δ' ∧ X Δ' |}.
-  Next Obligation. solve_proper. Qed.
-  Definition C_box (X : C) : C := cl' (PB_box X).
-
-  Local Infix "⊢" := C_entails.
-  Local Notation "'emp'" := C_emp.
-  Local Infix "∗" := C_sep.
-  Local Infix "-∗" := C_wand.
-  Local Infix "→" := C_impl.
-  Local Infix "∧" := C_and.
-  Local Infix "∨" := C_or.
-  Implicit Types P Q R : C.
-
-  Lemma cl_adj (X : PB) (Y : C) :
-    (X ⊢@{PB_alg} (Y : PB_alg)) → cl' X ⊢@{PB_alg} Y.
-  Proof.
-    intros H1 Δ.
-    destruct Y as [Y Ycl].
-    rewrite Ycl. eapply cl_mono.
-    eapply H1.
-  Qed.
-  Lemma cl'_adj (X : PB) (Y : C) :
-    (X ⊢@{PB_alg} (Y : PB_alg)) → cl' X ⊢ Y.
-  Proof.
-    intros H1 Δ.
-    destruct Y as [Y Ycl].
-    rewrite Ycl. eapply cl_mono.
-    eapply H1.
-  Qed.
-
-  Lemma impl_intro_r P Q R : (P ∧ Q ⊢ R) → P ⊢ Q → R.
-  Proof.
-    intros H1 Δ HP. intros Δ' HQ.
-    apply H1. split.
-    - by apply C_weaken.
-    - rewrite comm. by apply C_weaken.
-  Qed.
-  Lemma impl_elim_l' (P Q R : C) : (P ⊢ Q → R) → P ∧ Q ⊢ R.
-  Proof.
-    intros H1 Δ [HP1 HP2]. apply C_contract.
-    by apply H1.
-  Qed.
-  Lemma or_intro_l (P Q : C) : P ⊢ P ∨ Q.
-  Proof.
-    intros Δ HP. eapply cl_unit. naive_solver.
-  Qed.
-  Lemma or_intro_r (P Q : C) : Q ⊢ P ∨ Q.
-  Proof.
-    intros Δ HP. eapply cl_unit. naive_solver.
-  Qed.
-
-  Lemma sep_mono P P' Q Q' :
-    (P ⊢ Q) → (P' ⊢ Q') → P ∗ P' ⊢ Q ∗ Q'.
-  Proof.
-    intros H1 H2 Δ HP ϕ Hϕ.
-    apply (HP ϕ). clear HP Δ.
-    intros Δ. destruct 1 as (Δ1 & Δ2 & HΔ1 & HΔ2 & ->).
-    eapply Hϕ. do 2 eexists. split; eauto.
-  Qed.
-
-  Lemma wand_intro_r P Q R : (P ∗ Q ⊢ R) → P ⊢ Q -∗ R.
-  Proof.
-    intros HH Δ HP.
-    intros Δ' HQ. eapply HH.
-    eapply cl_unit.
-    do 2 eexists. repeat split; eauto.
-  Qed.
-  Lemma wand_elim_l' (P Q R : C) : (P ⊢ Q -∗ R) → P ∗ Q ⊢ R.
-  Proof.
-    destruct R as [R HR].
-    intros HH Δ HPQ. simpl.
-    rewrite HR. intros ϕ Hϕ. eapply HPQ.
-    clear Δ HPQ. intros Δ (Δ1 & Δ2 & H1 & H2 & ->).
-    apply Hϕ. by apply HH.
-  Qed.
-
-  Lemma emp_sep_1 P : P ⊢ emp ∗ P.
-  Proof.
-    intros Δ HP. eapply cl_unit.
-    exists ∅ₘ%B, Δ. rewrite left_id.
-    repeat split; eauto.
-    intros ϕ Hϕ. eapply Hϕ. simpl. reflexivity.
-  Qed.
-  Lemma emp_sep_2 P : emp ∗ P ⊢ P.
-  Proof.
-    apply wand_elim_l'.
-    eapply cl'_adj. eapply PB.wand_intro_r.
-    rewrite PB.emp_sep_2. done.
-  Qed.
-  Lemma sep_comm' P Q : P ∗ Q ⊢ Q ∗ P.
-  Proof. apply cl_mono. apply sep_comm'. Qed.
-  Lemma sep_assoc' P Q R : (P ∗ Q) ∗ R ⊢ P ∗ (Q ∗ R).
-  Proof.
-    apply wand_elim_l'.
-    apply cl'_adj.
-    intros Δ (D1 & D2 & HD1 & HD2 & ->).
-    intros D3 HD3. apply cl_unit.
-    exists D1, (D2 ,, D3)%B.
-    rewrite (assoc _ D1). repeat split; eauto.
-    apply cl_unit. do 2 eexists; repeat split; eauto.
-  Qed.
-
-  Global Instance c_entails_preorder : PreOrder C_entails.
-  Proof. split; compute; naive_solver. Qed.
-
-  Definition C_pure (ϕ : Prop) : C := cl' (PB_pure ϕ).
-
-  Program Definition PB_top : PB :=
-    {| PBPred := (λ Δ, Δ ≡ ∅ₐ)%B |}.
-
-  Next Obligation. solve_proper. Qed.
-
-  Definition C_top := cl' PB_top.
-
-  Lemma C_true_top : C_pure True ⊢ C_top.
-  Proof.
-    apply cl_adj.
-    intros Δ _.
-    rewrite -(BE_unit_l _ Δ).
-    apply C_weaken. apply cl_unit.
-    simpl. reflexivity.
-  Qed.
-  Lemma C_top_true : C_top ⊢ C_pure True.
-  Proof. intros Δ _. apply cl_unit. done. Qed.
-
-  Lemma box_mono P Q : (P ⊢ Q) → C_box P ⊢ C_box Q.
-  Proof.
-    intros HH. apply cl_mono.
-    intros Δ. simpl. destruct 1 as (Δ' & HD & HP).
-    exists Δ'. split; auto.
-  Qed.
-  Lemma box_elim P : C_box P ⊢ P.
-  Proof.
-    apply cl_adj. intros Δ. simpl.
-    destruct 1 as (Δ' & HD & HP). rewrite HD.
-    by apply C_necessitate.
-  Qed.
-  Lemma box_idem P : C_box P ⊢ C_box (C_box P).
-  Proof.
-    apply cl_adj. intros Δ.
-    destruct 1 as (Δ' & HD & HP).
-    rewrite HD.
-    apply C_bunch_box_idemp. apply cl_unit.
-    eexists. split; eauto. apply cl_unit.
-    eexists. eauto.
-  Qed.
-
-  Lemma box_conj X Y : C_box X ∧ C_box Y ⊢ C_box (X ∧ Y).
-  Proof.
-    apply impl_elim_l'. apply cl_adj.
-    intros Δ.
-    destruct 1 as (Δ' & HD & HX).
-    simpl. intros D1 H1 f Hf. rewrite HD.
-    rewrite comm. apply (BI_Collapse_L_inv [CtxSemicR D1]). simpl.
-    apply impl_r_inv. apply H1.
-    intros D2. destruct 1 as (D2' & HD2 & HY). simpl.
-    apply BI_Impl_R.
-    apply (C_collapse (Fint' f) [CtxSemicR D2]). simpl.
-    rewrite HD2.
-    apply Hf. exists (D2';,Δ')%B. split.
-    { simpl. done. }
-    split.
-    - rewrite comm. by apply C_weaken.
-    - by apply C_weaken.
-  Qed.
-
-  Lemma box_sep X Y : C_box X ∗ C_box Y ⊢ C_box (X ∗ Y).
-  Proof.
-    apply wand_elim_l'. apply cl'_adj.
-    apply bi.wand_intro_r.
-    rewrite bi.sep_comm.
-    apply bi.wand_elim_l'.
-    change (C_box Y ⊢ PB_box X -∗ C_box (C_sep X Y)).
-    apply cl_adj. apply bi.wand_intro_r.
-    intros ? (Δ1 & Δ2 & (Θ1 & HT1 & HX) & (Θ2 & HT2 & HY) & ->).
-    rewrite HT1 HT2. apply cl_unit.
-    exists (Θ1,, Θ2)%B. split; auto.
-    apply cl_unit.
-    do 2 eexists; repeat split; eauto.
-    by rewrite comm.
-  Qed.
-
-  Lemma box_true : C_pure True ⊢ C_box (C_pure True).
-  Proof.
-    apply cl_adj. intros Δ _.
-    rewrite -(BE_unit_l _ Δ).
-    apply C_weaken. apply cl_unit.
-    simpl. exists ∅ₐ%B. simpl. split; auto.
-    apply cl_unit. done.
-  Qed.
-
-  Lemma box_emp : emp ⊢ C_box emp.
-  Proof.
-    apply cl_mono. intros Δ HD; simpl.
-    exists ∅ₘ%B. split; eauto. apply cl_unit.
-    simpl. reflexivity.
-  Qed.
-
-  (* not needed? *)
-  Lemma box_conj_2 X Y : C_box (X ∧ Y) ⊢ C_box X ∧ C_box Y.
-  Proof.
-    apply cl_adj. intros Δ; simpl.
-    destruct 1 as (Δ' & -> & HΔ').
-    destruct HΔ' as (H1 & H2). split.
-    - apply cl_unit. exists Δ'. split; eauto.
-    - apply cl_unit. exists Δ'. split; eauto.
-  Qed.
-
-  Lemma C_bi_mixin : BiMixin (PROP:=C)
-                              C_entails C_emp C_pure C_and C_or
-                              C_impl C_forall C_exists C_sep C_wand.
-  Proof.
-    split.
-    - apply _.
-    - apply _.
-    - intros ??. split.
-      { by intros ->. }
-      intros [H1 H2]. split.
-      + apply H1.
-      + apply H2.
-    - intros n A1 A2 HA. compute.
-      naive_solver.
-    - intros [X1 ?] [X2 ?] HX [Y1 ?] [Y2 ?] HY.
-      intros Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      simpl in *. compute; naive_solver.
-    - intros X1 X2 HX Y1 Y2 HY; try apply _.
-      apply cl_proper. intros Δ.
-      specialize (HX Δ).
-      specialize (HY Δ).
-      compute; naive_solver.
-    - intros X1 X2 HX Y1 Y2 HY; try apply _.
-      intros Δ.
-      split.
-      + intros HX1 Δ2 HD2.
-        apply HY, HX1.
-        by apply HX.
-      + intros HX1 Δ2 HD2.
-        apply HY, HX1.
-        by apply HX.
-    - intros A P1 P2 HP.
-      intros Δ. split.
-      + intros H1 x. apply HP, H1.
-      + intros H2 x. apply HP, H2.
-    - intros A P1 P2 HP.
-      apply cl_proper.
-      intros Δ. split.
-      + intros [x H1]. exists x. by apply HP.
-      + intros [x H2]. exists x. by apply HP.
-    - intros X1 X2 HX Y1 Y2 HY; try apply _.
-      apply cl_proper.
-      intros Δ. split.
-      + intros (D1 & D2 & H1 & H2 & ->).
-        do 2 eexists. repeat split; eauto.
-        * by apply HX.
-        * by apply HY.
-      + intros (D1 & D2 & H1 & H2 & ->).
-        do 2 eexists. repeat split; eauto.
-        * by apply HX.
-        * by apply HY.
-    - intros X1 X2 HX Y1 Y2 HY; try apply _.
-      intros Δ. split.
-      + intros HX1 Δ2 HD2.
-        apply HY, HX1.
-        by apply HX.
-      + intros HX1 Δ2 HD2.
-        apply HY, HX1.
-        by apply HX.
-    - intros ψ X Hψ Δ. simpl.
-      intros HX ϕ Hs. apply Hs.
-      done.
-    - intros ψ X Hψ.
-      apply cl'_adj.
-      intros Δ HHψ. apply Hψ; eauto.
-      simpl. intros ϕ Hϕ. apply Hϕ.
-      done.
-    - compute; intros; naive_solver.
-    - compute; intros; naive_solver.
-    - compute; intros; naive_solver.
-    - compute; intros; naive_solver.
-    - compute; intros; naive_solver.
-    - intros P Q R H1 H2.
-      apply cl'_adj=>Δ [H|H]; eauto.
-    - apply impl_intro_r.
-    - apply impl_elim_l'.
-    - intros A X P HP.
-      intros Δ HD a. by apply HP.
-    - intros A X P Δ HP. apply HP.
-    - intros A X a Δ HP.
-      apply cl_unit. exists a. eauto.
-    - intros A P X HP. apply cl'_adj.
-      intros Δ [a Ha]. by apply (HP a).
-    - apply sep_mono.
-    - apply emp_sep_1.
-    - apply emp_sep_2.
-    - apply sep_comm'.
-    - apply sep_assoc'.
-    - apply wand_intro_r.
-    - apply wand_elim_l'.
-  Qed.
-
-Canonical Structure C_alg : bi :=
-  {| bi_bi_mixin := C_bi_mixin; |}.
+#[global] Instance bunch_monoid : Monoid bunch (bbin Comma) :=
+  {| monoid_unit := ∅ₘ%B |}.
+
+Definition PB := PM bunch.
+Canonical Structure PB_alg := PM_alg bunch (bbin Comma).
+
+(** ** Principal closed sets *)
+Program Definition Fint (ϕ : formula) : PB :=
+  {| PMPred := (λ Δ, Δ ⊢ᴮ ϕ) |}.
+Next Obligation. solve_proper. Qed.
+
+Definition C := C bunch (bbin Comma) formula Fint.
+Definition cl : PB → PB := cl bunch (bbin Comma) formula Fint.
+Definition cl' : PB → C := cl' bunch (bbin Comma) formula Fint.
+
+Definition CPred' : C → PB := CPred bunch (bbin Comma) formula Fint.
+Coercion CPred' : C >-> PB.
+
+Local Existing Instance C_equiv.
+
+Definition Fint' (ϕ : formula) : C :=
+  {| CPred := Fint ϕ |}.
+
+(** * Baisc properties of C *)
+
+Lemma C_inhabited (X : C) : (frml BOT) ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  apply Xcl. intros ϕ Hϕ.
+  eapply (BI_False_L []).
+Qed.
+
+(** An "introduction" rule for closed sets *)
+Lemma C_intro (X : C) Δ :
+  (∀ ϕ, ((X : PB) ⊢@{PB_alg} Fint ϕ) → Δ ⊢ᴮ ϕ) →
+  Δ ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  intros H1. by apply Xcl.
+Qed.
+
+Lemma C_weaken (X : C) Δ Δ' :
+  Δ ∈ X → (Δ ;, Δ')%B ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  intros HX. apply C_intro=> ϕ Hϕ.
+  eapply (BI_Weaken []). simpl.
+  by apply (Hϕ _).
+Qed.
+
+Lemma C_contract (X : C) Δ :
+  (Δ ;, Δ)%B ∈ X → Δ ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  intros HX. apply C_intro=> ϕ Hϕ.
+  eapply (BI_Contr []). simpl.
+  by apply (Hϕ _).
+Qed.
+
+Lemma C_collapse (X : C) Γ Δ :
+  fill Γ Δ ∈ X → fill Γ (frml (collapse Δ)) ∈ X.
+Proof.
+  intros HX.
+  apply C_intro=>ϕ Hϕ.
+  apply BI_Collapse_L. by apply (Hϕ _).
+Qed.
+
+Lemma C_collapse_inv (X : C) Γ Δ :
+  fill Γ (frml (collapse Δ)) ∈ X → fill Γ Δ ∈ X.
+Proof.
+  intros HX.
+  apply C_intro=>ϕ Hϕ.
+  apply BI_Collapse_L_inv. by apply (Hϕ _).
+Qed.
+
+(** Some calculations in the model. *)
+Program Definition PB_and_alt (X Y : PB) :=
+  MkPM bunch (λ Δ, ∃ Δ1 Δ2, (Δ ≡ (Δ1;,Δ2)%B) ∧
+                              Δ1 ∈ X ∧ Δ2 ∈ Y) _.
+Next Obligation. solve_proper. Qed.
+
+Lemma C_and_eq (X Y : C) :
+  ((X : PB) ∧ (Y : PB))%I ≡@{PB}
+   cl (PB_and_alt (X : PB) (Y : PB)).
+Proof.
+  apply bi.equiv_entails; split.
+  - intros Δ HΔ ϕ Hϕ.
+    simpl. apply (BI_Contr [] Δ). simpl.
+    apply (Hϕ _). exists Δ,Δ.
+    split; eauto.
+  - intros Δ HΔ. split.
+    + apply C_intro=>ϕ Hϕ.
+      eapply HΔ. clear HΔ Δ.
+      intros Δ (Δ1 & Δ2 & -> & [H1 H2]). simpl.
+      apply (BI_Weaken []). by apply (Hϕ _).
+    + apply C_intro=>ϕ Hϕ.
+      eapply HΔ. clear HΔ Δ.
+      intros Δ (Δ1 & Δ2 & -> & [H1 H2]). simpl.
+      rewrite comm.
+      apply (BI_Weaken []). by apply (Hϕ _).
+Qed.
+
+Program Definition PB_impl_alt (X Y : PB) :=
+  MkPM bunch (λ Δ, ∀ Δ', Δ' ∈ X → (Δ ;, Δ')%B ∈ Y) _.
+Next Obligation.
+  intros X Y Δ Δ2 Heq. split; repeat intro.
+  - rewrite -Heq. naive_solver.
+  - rewrite Heq. naive_solver.
+Qed.
+
+Lemma PB_impl_alt_adj (X : PB) (Y Z : C) :
+  (PB_and_alt X (Y : PB) ⊢@{PB_alg} (Z : PB)) →
+  (X ⊢ PB_impl_alt (Y : PB) (Z : PB)).
+Proof.
+  intros H1 Δ HX Δ' HY.
+  apply (H1 _). do 2 eexists; eauto.
+Qed.
+
+(** * We show that cl is strong *)
+
+Global Instance wand_is_closed (X : PB) (Y : C) :
+  Is_closed Fint (X -∗ (Y : PB))%I.
+Proof.
+  apply Is_closed_inc.
+  change (from_closure.cl bunch _ formula Fint) with cl.
+  change (cl (X -∗ (Y : PB)) ⊢@{PB_alg} X -∗ (Y : PB)).
+  cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
+               (λ '(Δ, ϕ), Fint' (WAND (collapse (`Δ)) (`ϕ)) : PB)
+       ≡ (PM_wand _ _ X (Y : PB))%I).
+  { intros <-. apply PM_forall_closed.
+    intros. destruct x. apply _. }
+  split.
+  - intros Δ HXY Δ' HX.
+    apply (C_collapse_inv _ [CtxCommaR Δ]).
+    simpl.
+    apply C_intro=>ϕ Hϕ.
+    set (d1 := (Δ' ↾ HX) : {Δ : bunch | X Δ}).
+    set (d2 := (ϕ ↾ Hϕ) : {ϕ : formula | (Y : PB) -∗ Fint ϕ}).
+    specialize (HXY (d1, d2)). simpl in *.
+    by apply wand_r_inv in HXY.
+  - intros Δ HXY.
+    intros ([Δ' HX], [ϕ Hϕ]).
+    simpl. apply BI_Wand_R.
+    apply (Hϕ _).
+    apply (C_collapse _ [CtxCommaR Δ]).
+    by apply (HXY _).
+Qed.
+
+Program Definition PB_impl' (X Y : PB) : PB :=
+  {| PMPred := λ Δ, ∀ Δ', X Δ' → Y (Δ ;, Δ')%B |}.
+Next Obligation.
+  intros X Y D1 D2 H1. by setoid_rewrite H1.
+Qed.
+
+Global Instance PB_impl'_proper : Proper ((≡) ==> (≡) ==> (≡)) PB_impl'.
+Proof. compute; naive_solver. Qed.
+
+Global Instance PB_impl_Is_closed (X : PB) (Y : C) :
+  Is_closed Fint (PB_impl' X (Y : PB)).
+Proof.
+  apply Is_closed_inc.
+  change (from_closure.cl bunch _ formula Fint) with cl.
+  (* change (cl (PB_impl' X Y) ⊢@{PB_alg} X → (Y : PB)). *)
+  cut (PM_forall _ ({ Δ | X Δ } * { ϕ : formula | (Y : PB) ⊢@{PB_alg} Fint ϕ })
+               (λ '(Δ, ϕ), Fint' (IMPL (collapse (`Δ)) (`ϕ)) : PB)
+       ≡ (PB_impl' X Y)%I).
+  { intros <-. apply PM_forall_closed.
+    intros. destruct x. apply _. }
+  split.
+  - intros Δ HXY Δ' HX.
+    apply (C_collapse_inv _ [CtxSemicR Δ]).
+    simpl.
+    apply C_intro=>ϕ Hϕ.
+    set (d1 := (Δ' ↾ HX) : {Δ : bunch | X Δ}).
+    set (d2 := (ϕ ↾ Hϕ) : {ϕ : formula | (Y : PB) -∗ Fint ϕ}).
+    specialize (HXY (d1, d2)). simpl in *.
+    by apply impl_r_inv in HXY.
+  - intros Δ HXY.
+    intros ([Δ' HX], [ϕ Hϕ]).
+    simpl. apply BI_Impl_R.
+    apply (Hϕ _).
+    apply (C_collapse _ [CtxSemicR Δ]).
+    by apply (HXY _).
+Qed.
+
+
+Program Definition C_impl (X Y : C) : C := {| CPred := PB_impl' X Y |}.
+
+Lemma has_heyting_impl (X Y Z : C) :
+  ((X : PB) ⊢@{PB_alg} ((C_impl Y Z) : PB)) ↔
+      ((X : PB) ∧ (Y : PB) ⊢@{PB_alg} (Z : PB))%I.
+Proof.
+  rewrite C_and_eq.
+  split.
+  - intros H1. apply cl_adj; first apply _.
+    intros Δ (Δ1 & Δ2 & -> & H2 & H3).
+    by apply (H1 _).
+  - intros H1.
+    intros Δ1 H2 Δ2 H3. apply (H1 _).
+    eapply (cl_unit _ _ _).
+    eexists _,_. split; eauto.
+Qed.
+
+#[global] Instance C_impl_proper : Proper ((≡) ==> (≡) ==> (≡)) C_impl.
+Proof.
+  intros X1 X2 HX Y1 Y2 HY.
+  unfold C_impl. split.
+  - intros Δ. simpl. intros H1 Δ' HX'.
+    apply HY. apply H1. apply HX. apply HX'.
+  - intros Δ. simpl. intros H1 Δ' HX'.
+    apply HY. apply H1. apply HX. apply HX'.
+Qed.
+
+Definition C_alg : bi :=
+  C_alg bunch (bbin Comma) formula Fint C_impl C_impl_proper has_heyting_impl wand_is_closed.
+
+(** * The Box modality *)
+Program Definition PB_box (X: PB) : PB :=
+  {| PMPred := λ Δ, ∃ Δ', Δ ≡ fmap BOX Δ' ∧ X Δ' |}.
+Next Obligation. solve_proper. Qed.
+Definition C_box (X : C) : C := cl' (PB_box X).
+
+Lemma C_necessitate (X : C) Δ :
+  Δ ∈ X → (fmap BOX Δ) ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  intros HX. apply C_intro=> ϕ Hϕ.
+  eapply (BI_Boxes_L []).
+  by apply (Hϕ _).
+Qed.
+
+Lemma C_bunch_box_idemp (X : C) Δ :
+  (fmap BOX (fmap BOX Δ)) ∈ X → (fmap BOX Δ) ∈ X.
+Proof.
+  destruct X as [X Xcl]. simpl.
+  intros HX. apply C_intro=> ϕ Hϕ.
+  eapply (box_l_inv []).
+  by apply (Hϕ _).
+Qed.
+
+Lemma box_mono (P Q : C) : (P ⊢@{C_alg} Q) → C_box P ⊢@{C_alg} C_box Q.
+Proof.
+  intros HH. apply cl_mono.
+  intros Δ. simpl. destruct 1 as (Δ' & HD & HP).
+  exists Δ'. split; auto.
+Qed.
+Lemma box_elim (P : C) : C_box P ⊢@{C_alg} P.
+Proof.
+  apply cl_adj. { apply P. }
+  intros Δ. simpl.
+  destruct 1 as (Δ' & HD & HP). rewrite HD.
+  by apply C_necessitate.
+Qed.
+Lemma box_idem P : C_box P ⊢@{C_alg} C_box (C_box P).
+Proof.
+  apply cl_adj. { apply _. }
+  intros Δ.
+  destruct 1 as (Δ' & HD & HP).
+  rewrite HD.
+  apply C_bunch_box_idemp.
+  apply (cl_unit Fint _ _).
+  eexists. split; eauto.
+  apply (cl_unit Fint _ _).
+  eexists. eauto.
+Qed.
+
+Lemma box_conj (P Q : C_alg) : C_box P ∧ C_box Q ⊢@{C_alg} C_box (P ∧ Q).
+Proof.
+  apply impl_elim_l'. apply cl_adj. { apply _. }
+  intros Δ.
+  destruct 1 as (Δ' & HD & HX).
+  simpl. intros D1 H1 f Hf. rewrite HD.
+  rewrite comm. apply (BI_Collapse_L_inv [CtxSemicR D1]). simpl.
+  apply impl_r_inv. apply H1.
+  intros D2. destruct 1 as (D2' & HD2 & HY). simpl.
+  apply BI_Impl_R.
+  apply (C_collapse (Fint' f) [CtxSemicR D2]). simpl.
+  rewrite HD2.
+  apply (Hf _). exists (D2';,Δ')%B. split.
+  { simpl. done. }
+  split.
+  - rewrite comm. by apply C_weaken.
+  - by apply C_weaken.
+Qed.
+
+Lemma box_sep (X Y : C_alg) : C_box X ∗ C_box Y ⊢@{C_alg} C_box (X ∗ Y).
+Proof.
+  apply bi.wand_elim_l'. apply cl'_adj.
+  apply bi.wand_intro_r.
+  rewrite comm.
+  apply bi.wand_elim_l'.
+  change ((C_box Y : PB) ⊢@{PB_alg} PB_box (X : C) -∗ (C_box (X ∗ Y) : PB)).
+  apply cl_adj. { apply _. } apply bi.wand_intro_r.
+  intros ? (Δ1 & Δ2 & (Θ1 & HT1 & HX) & (Θ2 & HT2 & HY) & ->).
+  rewrite HT1 HT2. apply (cl_unit Fint _ _).
+  exists (Θ1,, Θ2)%B. split; auto.
+  apply (cl_unit _ _ _).
+  do 2 eexists; repeat split; eauto.
+  by rewrite comm.
+Qed.
+
+Lemma box_true : True ⊢@{C_alg} C_box (True : C_alg).
+Proof.
+  apply cl_adj. { apply _. } intros Δ _.
+  rewrite -(BE_unit_l _ Δ).
+  apply C_weaken. apply (cl_unit _ _ _).
+  simpl. exists ∅ₐ%B. simpl. split; auto.
+  apply (cl_unit _ _ _). done.
+Qed.
+
+Lemma box_emp : emp ⊢@{C_alg} C_box (emp : C_alg).
+Proof.
+  apply cl_mono. intros Δ HD; simpl.
+  exists ∅ₘ%B. split; eauto. apply (cl_unit _ _ _).
+  simpl. reflexivity.
+Qed.
 
 Global Instance C_alg_box : BiBox C_alg C_box.
 Proof.
@@ -770,13 +335,14 @@ Proof.
   - apply box_emp.
 Qed.
 
+(** * Interpretation in [C] and Okada's lemma *)
 Definition C_atom (a : atom) := Fint' (ATOM a).
 
-Definition inner_interp : formula → C
-  := formula_interp C_alg C_box C_atom.
+Definition inner_interp : formula → C := @formula_interp C_alg C_box C_atom.
 
 Lemma okada_property (A : formula) :
-  ((inner_interp A) (frml A)) ∧ (inner_interp A ⊢@{C_alg} Fint' A).
+  (frml A ∈ inner_interp A)
+   ∧ (inner_interp A ⊢@{C_alg} Fint' A).
 Proof.
   induction A; simpl.
   - split; first by compute; eauto.
@@ -812,9 +378,9 @@ Proof.
     split.
     + eapply C_intro=>ϕ Hϕ.
       apply (BI_Disj_L []); simpl.
-      * eapply Hϕ. apply cl_unit.
+      * eapply (Hϕ _). apply (cl_unit _ _ _).
         by left.
-      * eapply Hϕ. apply cl_unit.
+      * eapply (Hϕ _). apply (cl_unit _ _ _).
         by right.
     + rewrite IH12 IH22.
       apply bi.or_elim.
@@ -826,7 +392,7 @@ Proof.
     destruct IHA2 as [IH21 IH22].
     split.
     + apply (C_collapse _ [] (frml A1,, frml A2)%B); simpl. 
-      apply cl_unit. exists (frml A1), (frml A2).
+      apply (cl_unit _ _ _). exists (frml A1), (frml A2).
       repeat split; eauto.
     + rewrite IH12 IH22.
       apply cl'_adj.
@@ -839,11 +405,11 @@ Proof.
       apply C_intro=>ϕ Hϕ.
       rewrite comm.
       apply (BI_Impl_L []).
-      { by apply IH12. }
-      simpl. by apply Hϕ.
+      { by apply (IH12 _). }
+      simpl. by apply (Hϕ _).
     + intros Δ H1. simpl.
-      constructor. apply IH22.
-      by apply H1.
+      constructor. apply (IH22 _).
+      by apply (H1 _).
   - destruct IHA1 as [IH11 IH12].
     destruct IHA2 as [IH21 IH22].
     split.
@@ -851,23 +417,31 @@ Proof.
       apply C_intro=>ϕ Hϕ.
       rewrite comm.
       apply (BI_Wand_L []).
-      { by apply IH12. }
-      simpl. by apply Hϕ.
+      {  by apply (IH12 _). }
+      simpl. by apply (Hϕ _).
     + intros Δ H1. simpl.
-      constructor. apply IH22.
-      by apply H1.
+      constructor. apply (IH22 _).
+      by apply (H1 _).
   - destruct IHA as [IH1 IH2].
     split.
-    + intros ϕ Hϕ. apply Hϕ. simpl.
+    + intros ϕ Hϕ. apply (Hϕ _). simpl.
       exists (frml A). split; eauto.
-    + apply cl_adj. intros ? (Δ & -> & HA).
-      simpl. apply BI_Box_R. apply IH2.
+    + apply cl_adj. { apply _. } intros ? (Δ & -> & HA).
+      simpl. apply BI_Box_R. apply (IH2 _).
       by apply C_necessitate.
 Qed.
 
-End Cl.
-
-Import PB Cl.
+Theorem C_interp_cf (Δ : bunch) (ϕ : formula) :
+  seq_interp C_alg C_box C_atom Δ ϕ →
+  (Δ ⊢ᴮ ϕ).
+Proof.
+  unfold seq_interp. intros H.
+  destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
+  apply (Hϕ2 _). unfold inner_interp.
+  apply (H _). apply (C_collapse_inv _ [] Δ). simpl.
+  rewrite (bunch_interp_collapse C_alg _ C_atom).
+  apply okada_property.
+Qed.
 
 Theorem cut Γ Δ ϕ ψ :
   (Δ ⊢ᴮ ψ) →
@@ -876,17 +450,14 @@ Theorem cut Γ Δ ϕ ψ :
 Proof.
   intros H1%(seq_interp_sound C_alg C_box C_atom).
   intros H2%(seq_interp_sound C_alg C_box C_atom).
-  simpl in H1, H2.
-  cut (seq_interp C_alg C_box C_atom (fill Γ Δ) ϕ).
-  { simpl. intros H3.
-    destruct (okada_property ϕ) as [Hϕ1 Hϕ2].
-    apply Hϕ2. unfold inner_interp.
-    apply H3. apply (C_collapse_inv _ [] (fill Γ Δ)). simpl.
-    cut (formula_interp C_alg C_box C_atom (collapse (fill Γ Δ)) (frml (collapse (fill Γ Δ)))).
-    { by rewrite bunch_interp_collapse. }
-    apply okada_property. }
-  simpl. rewrite -H2.
-  apply bunch_interp_fill_mono, H1.
+  change (seq_interp _ _ _ Δ ψ) with (bunch_interp (formula_interp _ C_box C_atom) Δ ⊢@{C_alg} formula_interp _ C_box C_atom ψ) in H1.
+  change (seq_interp _ _ _ (fill Γ (frml ψ)) ϕ) with
+    (bunch_interp (formula_interp _ C_box C_atom) (fill Γ (frml ψ)) ⊢@{C_alg} formula_interp _ C_box C_atom ϕ) in H2.
+  apply C_interp_cf.
+  unfold seq_interp.
+  etrans; last apply H2.
+  apply bunch_interp_fill_mono.
+  apply H1.
 Qed.
 
 (* Print Assumptions cut. *)

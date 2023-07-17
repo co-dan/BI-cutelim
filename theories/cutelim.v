@@ -21,8 +21,8 @@ Import SH S.
 (** The first algebra that we consider is a purely "combinatorial" one:
     predicates [(bunch/≡) → Prop] *)
 
-Global Instance bunch_monoid : Monoid bunch (bbin Comma) :=
-  {| monoid_unit := empty |}.
+#[global] Instance bunch_monoid : Monoid bunch (bbin Comma) :=
+  {| monoid_unit := ∅ₘ%B |}.
 
 Definition PB := PM bunch.
 Canonical Structure PB_alg := PM_alg bunch (bbin Comma).

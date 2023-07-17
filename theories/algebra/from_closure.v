@@ -215,10 +215,10 @@ Section FromClosure.
   Qed.
 
   (** * Closure strength and the BI operations *)
-  Variable impl : C → C → C.
-  Hypothesis impl_proper : Proper ((≡) ==> (≡) ==> (≡)) impl.
+  Variable C_impl : C → C → C.
+  Hypothesis C_impl_proper : Proper ((≡) ==> (≡) ==> (≡)) C_impl.
   Hypothesis (is_heyting_impl : ∀ (X Y Z : C),
-        ((X : PM) ⊢@{PM_alg} (impl Y Z : PM)) ↔
+        ((X : PM) ⊢@{PM_alg} (C_impl Y Z : PM)) ↔
           ((X : PM) ∧ (Y : PM) ⊢@{PM_alg} (Z : PM))%I).
   (** This hypothesis is equivalent to [cl] being strong *)
   Hypothesis
@@ -289,9 +289,6 @@ Section FromClosure.
   Definition C_sep (X Y : C) : C := cl' (PM_sep M o (X : PM) (Y : PM)).
 
   (** Implications *)
-  Definition C_impl (X : C) (Y : C) : C :=
-    {| CPred := impl X Y |}.
-
   Definition C_wand (X : PM) (Y : C) : C :=
     {| CPred := PM_wand M o X (Y : PM) |}.
 
@@ -407,7 +404,7 @@ Section FromClosure.
     - intros X1 X2 HX Y1 Y2 HY; try apply _.
       apply cl_proper.
       split; intro m ; vm_compute in * ; naive_solver.
-    - apply impl_proper.
+    - apply C_impl_proper.
     - intros A P1 P2 HP.
       split; intro m ; vm_compute in * ; naive_solver.
     - intros A P1 P2 HP.
