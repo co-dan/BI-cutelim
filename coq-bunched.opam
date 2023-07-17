@@ -13,5 +13,5 @@ install: [make "install"]
 remove: ["rm" "-rf" "%{lib}%/coq/user-contrib/bunched"]
 depends: [
   "coq-stdpp" { (>= "1.8.0") | (= "dev") }
-  "coq" { (>= "8.15") | (= "dev") }
+  "coq" { (>= "8.16") | (= "dev") }
 ]
