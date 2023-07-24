@@ -103,20 +103,22 @@ Qed.
 
 Lemma bunch_decomp_box Δ Π ϕ :
   bunch_decomp (BOX <$> Δ) Π (frml (BOX ϕ)) →
-  ∃ Π', Π = bunch_ctx_map BOX Π' ∧ bunch_decomp Δ Π' (frml ϕ).
+  ∃ Π', (∀ Γ, fill Π (BOX <$> Γ) =  BOX <$> fill Π' Γ) ∧ bunch_decomp Δ Π' (frml ϕ).
 Proof.
   revert Π. induction Δ=>/= Π H1; try by inversion H1.
   - inversion H1. simplify_eq/=. exists []. split; eauto.
     econstructor.
   - inversion H1 as [Δ|sp Δ1' Δ2' Π' Δ H1' |sp Δ1' Δ2' Π' Δ H1']; simplify_eq/=.
-    + destruct (IHΔ1 _ H1') as (Π'1 & -> & Hdec).
+    + destruct (IHΔ1 _ H1') as (Π'1 & HΠ'1 & Hdec).
       exists (Π'1 ++ [CtxL s Δ2]).
-      rewrite /bunch_ctx_map map_app /=. split; auto.
-        by econstructor.
-    + destruct (IHΔ2 _ H1') as (Π'1 & -> & Hdec).
+      split; last by econstructor.
+      intros Γ. rewrite !fill_app /=.
+      rewrite HΠ'1 //.
+    + destruct (IHΔ2 _ H1') as (Π'1 & HΠ'1 & Hdec).
       exists (Π'1 ++ [CtxR s Δ1]).
-      rewrite /bunch_ctx_map map_app /=. split; auto.
-        by econstructor.
+      split; last by econstructor.
+      intros Γ. rewrite !fill_app /=.
+      rewrite HΠ'1 //.
 Qed.
 
 (** Some convenient derived rules *)

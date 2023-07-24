@@ -538,9 +538,9 @@ Section SeqcalcHeight.
     - (* box R *)
       apply bunch_decomp_complete in Heq.
       apply bunch_decomp_box in Heq.
-      destruct Heq as (Π' & -> & ->%bunch_decomp_correct).
+      destruct Heq as (Π' & HΠ' & ->%bunch_decomp_correct).
       change (frml (BOX ϕ)) with (BOX <$> (frml ϕ)).
-      rewrite -(bunch_map_fill BOX). apply BI_Box_R.
+      rewrite HΠ'. apply BI_Box_R.
       rewrite bunch_map_fill /=. eapply IHproves; eauto.
       rewrite bunch_map_fill //.
     - (* emp R *)
