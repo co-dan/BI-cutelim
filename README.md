@@ -28,11 +28,14 @@ See `seqcalc_s4.v`, `seqcalc_height_s4.v`, `interp_s4.v`, and `cutelim_s4.v` in 
 ## Compilation
 
 You will need a copy of std++ installed.
-This version is tested with Coq 8.15 and std++ 1.7.0.
+This version is tested with Coq 8.17 and std++ 1.8.0.
 You can install the dependency with opam using `opam install --deps-only .` or the whole developement with `opam install .`
 
 If you have std++ installed then you can compile the project with `make -jN` where `N` is the number of threads you want to use.
 Compile the HTML docs with `make html`.
+
+Note: this Coq developement is automatically tested for Coq versions 8.16 and 8.17, and we will try to support the two latest versions of Coq.
+![CI workflow status](https://github.com/co-dan/BI-cutelim/actions/workflows/build.yml/badge.svg)
 
 ## Copyright
 
