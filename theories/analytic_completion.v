@@ -262,27 +262,6 @@ Section analytic_completion_correct.
 End analytic_completion_correct.
 
 Lemma analytic_completion_sound (s : structural_rule) (PROP : bi) :
-  rule_valid (analytic_completion s) PROP → rule_valid s PROP.
-Proof.
-  rewrite /rule_valid /=.
-  set (T := snd s).
-  set (Ts := fst s).
-  intros H1 Xs.
-  rewrite - linearize_bterm_act_ren.
-  rewrite H1. apply bi.exist_elim=>Ti.
-  apply bi.pure_elim_l. intros HTi.
-  apply elem_of_list_join in HTi.
-  destruct HTi as [L [HTi HL]].
-  apply elem_of_list_fmap_2 in HL.
-  destruct HL as [Tz [-> HTz]].
-  apply (bi.exist_intro' _ _  Tz).
-  rewrite bi.pure_True // left_id.
-  simpl in *. apply elem_of_elements in HTi.
-  eapply transformed_premise_act_ren in HTi.
-  by rewrite HTi.
-Qed.
-
-Lemma analytic_completion_complete (s : structural_rule) (PROP : bi) :
   rule_valid s PROP → rule_valid (analytic_completion s) PROP.
 Proof.
   rewrite /rule_valid /=.
@@ -303,3 +282,25 @@ Proof.
   apply (bi.exist_intro' _ _  Tk).
   rewrite bi.pure_True// left_id//.
 Qed.
+
+Lemma analytic_completion_complete (s : structural_rule) (PROP : bi) :
+  rule_valid (analytic_completion s) PROP → rule_valid s PROP.
+Proof.
+  rewrite /rule_valid /=.
+  set (T := snd s).
+  set (Ts := fst s).
+  intros H1 Xs.
+  rewrite - linearize_bterm_act_ren.
+  rewrite H1. apply bi.exist_elim=>Ti.
+  apply bi.pure_elim_l. intros HTi.
+  apply elem_of_list_join in HTi.
+  destruct HTi as [L [HTi HL]].
+  apply elem_of_list_fmap_2 in HL.
+  destruct HL as [Tz [-> HTz]].
+  apply (bi.exist_intro' _ _  Tz).
+  rewrite bi.pure_True // left_id.
+  simpl in *. apply elem_of_elements in HTi.
+  eapply transformed_premise_act_ren in HTi.
+  by rewrite HTi.
+Qed.
+
