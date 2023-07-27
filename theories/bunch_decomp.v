@@ -162,3 +162,152 @@ Proof.
         rewrite fn_lookup_insert_ne//.
       * apply HH.
 Qed.
+
+Local Lemma bunch_equiv_fill_1 {formula} (Δ : @bunch formula) C ϕ :
+  fill C (frml ϕ) =? Δ →
+  ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+Proof.
+  intros Heq.
+  remember (fill C (frml ϕ)) as Y.
+  revert C HeqY.
+  induction Heq=>C' heqY; symmetry in heqY.
+  + apply bunch_decomp_complete in heqY.
+    apply bunch_decomp_ctx in heqY.
+    destruct heqY as [H1 | H2].
+    * destruct H1 as [C1 [HC0%bunch_decomp_correct HC]].
+      destruct (IHHeq C1 HC0) as [C2 [HΔ1 HC2]].
+      simplify_eq/=.
+      exists (C2 ++ C). rewrite fill_app. split; first done.
+      intros Δ. rewrite !fill_app HC2 //.
+    * destruct H2 as (C1 & C2 & HC1 & HC2 & Hdec0).
+      specialize (Hdec0 Δ2). apply bunch_decomp_correct in Hdec0.
+      exists (C1 Δ2). split ; eauto.
+      intros Δ. rewrite HC1.
+      assert (Δ1 ≡ Δ2) as <-.
+      { by apply rtsc_lr. }
+      by rewrite HC2.
+  + apply bunch_decomp_complete in heqY.
+    inversion heqY; simplify_eq/=.
+    { inversion H4. }
+    apply bunch_decomp_correct in H4.
+    exists Π. split; eauto.
+    intros X. rewrite fill_app /= left_id //.
+  + apply bunch_decomp_complete in heqY.
+    inversion heqY; simplify_eq/=.
+    * exists (Π ++ [CtxR s Δ2]). split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite comm.
+    * exists (Π ++ [CtxL s Δ1]). split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite comm.
+  + apply bunch_decomp_complete in heqY.
+    inversion heqY; simplify_eq/=.
+    * exists (Π ++ [CtxL s Δ2;CtxL s Δ3])%B. split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite assoc.
+    * inversion H4; simplify_eq/=.
+      ** exists (Π0 ++ [CtxR s Δ1;CtxL s Δ3])%B. split.
+         { rewrite fill_app/=.
+           apply bunch_decomp_correct in H5.
+           by rewrite H5. }
+         intros Δ. rewrite !fill_app/=.
+         by rewrite assoc.
+      ** exists (Π0 ++ [CtxR s (bbin s Δ1 Δ2)])%B. split.
+         { simpl. rewrite fill_app/=.
+           apply bunch_decomp_correct in H5.
+           by rewrite H5. }
+         intros Δ. rewrite !fill_app/=.
+         by rewrite assoc.
+Qed.
+
+Local Lemma bunch_equiv_fill_2 {formula} (Δ : @bunch formula) C ϕ :
+  Δ =? fill C (frml ϕ) →
+  ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+Proof.
+  intros Heq.
+  remember (fill C (frml ϕ)) as Y.
+  revert C HeqY.
+  induction Heq=>C' heqY; symmetry in heqY.
+  + apply bunch_decomp_complete in heqY.
+    apply bunch_decomp_ctx in heqY.
+    destruct heqY as [H1 | H2].
+    * destruct H1 as [C1 [HC0%bunch_decomp_correct HC]].
+      destruct (IHHeq C1 HC0) as [C2 [HΔ1 HC2]].
+      simplify_eq/=.
+      exists (C2 ++ C). rewrite fill_app. split; first done.
+      intros Δ. rewrite !fill_app HC2 //.
+    * destruct H2 as (C1 & C2 & HC1 & HC2 & Hdec0).
+      specialize (Hdec0 Δ1). apply bunch_decomp_correct in Hdec0.
+      exists (C1 Δ1). split ; eauto.
+      intros Δ. rewrite HC1.
+      assert (Δ1 ≡ Δ2) as ->.
+      { by apply rtsc_lr. }
+      by rewrite HC2.
+  + exists (C' ++ [CtxR s (bnul s)]%B). simpl; split.
+    { rewrite fill_app /=. by rewrite heqY. }
+    intros X; rewrite fill_app/=.
+    by rewrite left_id.
+  + apply bunch_decomp_complete in heqY.
+    inversion heqY; simplify_eq/=.
+    * exists (Π ++ [CtxR s Δ1]). split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite comm.
+    * exists (Π ++ [CtxL s Δ2]). split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite comm.
+  + apply bunch_decomp_complete in heqY.
+    inversion heqY; simplify_eq/=.
+    * inversion H4; simplify_eq/=.
+      ** exists (Π0 ++ [CtxL s (bbin s Δ2 Δ3)])%B. split.
+         { rewrite fill_app/=.
+           apply bunch_decomp_correct in H5.
+           by rewrite H5. }
+         intros Δ. rewrite !fill_app/=.
+         by rewrite assoc.
+      ** exists (Π0 ++ [CtxL s Δ3;CtxR s Δ1])%B. split.
+         { simpl. rewrite fill_app/=.
+           apply bunch_decomp_correct in H5.
+           by rewrite H5. }
+         intros Δ. rewrite !fill_app/=.
+         by rewrite assoc.
+    * exists (Π ++ [CtxR s Δ2;CtxR s Δ1])%B. split.
+      { rewrite fill_app/=.
+        apply bunch_decomp_correct in H4.
+        by rewrite H4. }
+      intros Δ. rewrite !fill_app/=.
+      by rewrite assoc.
+Qed.
+
+Lemma bunch_equiv_fill {formula} Δ C (ϕ : formula) :
+  Δ ≡ (fill C (frml ϕ)) →
+  ∃ C', Δ = fill C' (frml ϕ) ∧ (∀ Δ, fill C' Δ ≡ fill C Δ).
+Proof.
+  revert Δ. eapply rtc_ind_l.
+  { exists C. eauto. }
+  intros X Y HXY HY. clear HY.
+  intros (C0 & -> & HC0).
+  destruct HXY as [HXY|HXY].
+  - apply bunch_equiv_fill_2 in HXY.
+    destruct HXY as (C' & -> & HC').
+    eexists; split; eauto.
+    intros ?. by rewrite HC' HC0.
+  - apply bunch_equiv_fill_1 in HXY.
+    destruct HXY as (C' & -> & HC').
+    eexists; split; eauto.
+    intros ?. by rewrite HC' HC0.
+Qed.

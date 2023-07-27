@@ -310,7 +310,7 @@ Qed.
 Lemma box_true : True ⊢@{C_alg} C_box (True : C_alg).
 Proof.
   apply cl_adj. { apply _. } intros Δ _.
-  rewrite -(BE_unit_l _ Δ).
+  rewrite -(left_id ∅ₐ%B _ Δ).
   apply C_weaken. apply (cl_unit _ _ _).
   simpl. exists ∅ₐ%B. simpl. split; auto.
   apply (cl_unit _ _ _). done.

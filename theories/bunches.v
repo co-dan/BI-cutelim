@@ -72,15 +72,14 @@ Definition bunch_ctx_map {A B} (f : A → B) (Π : @bunch_ctx A) := map (bunch_c
 (** Equivalence on bunches is defined to be the least congruence
       that satisfies the monoidal laws for (empty and comma) and (top
       and semicolon). *)
-Inductive bunch_equiv {frml} : @bunch frml → @bunch frml → Prop :=
-| BE_refl Δ : Δ =? Δ
-| BE_sym Δ1 Δ2 : Δ1 =? Δ2 → Δ2 =? Δ1
-| BE_trans Δ1 Δ2 Δ3 : Δ1 =? Δ2 → Δ2 =? Δ3 → Δ1 =? Δ3
+Inductive bunch_equiv_step {frml} : @bunch frml → @bunch frml → Prop :=
 | BE_cong C Δ1 Δ2 : Δ1 =? Δ2 → fill C Δ1 =? fill C Δ2
 | BE_unit_l s Δ : bbin s (bnul s) Δ =? Δ
 | BE_comm s Δ1 Δ2 : bbin s Δ1 Δ2 =? bbin s Δ2 Δ1
 | BE_assoc s Δ1 Δ2 Δ3 : bbin s Δ1 (bbin s Δ2 Δ3) =? bbin s (bbin s Δ1 Δ2) Δ3
-where "Δ =? Γ" := (bunch_equiv Δ%B Γ%B).
+where "Δ =? Γ" := (bunch_equiv_step Δ%B Γ%B).
+
+Definition bunch_equiv {frml} := rtsc (@bunch_equiv_step frml).
 
 (** Register [bunch_equiv] as [(≡)] *)
 #[export] Instance equiv_bunch_equiv frml : Equiv (@bunch frml) := bunch_equiv.
@@ -88,34 +87,34 @@ where "Δ =? Γ" := (bunch_equiv Δ%B Γ%B).
 (** * Properties *)
 
 #[export] Instance equivalence_bunch_equiv frml : Equivalence ((≡@{@bunch frml})).
-Proof.
-  repeat split.
-  - intro x. econstructor.
-  - intros x y Hxy. by econstructor.
-  - intros x y z Hxy Hyz. by econstructor.
-Qed.
+Proof. apply _. Qed.
 
 #[export] Instance bbin_comm frml s : Comm (≡@{@bunch frml}) (bbin s).
-Proof. intros X Y. apply BE_comm. Qed.
+Proof. intros X Y. apply rtsc_rl. apply BE_comm. Qed.
 #[export] Instance bbin_assoc frml s : Assoc (≡@{@bunch frml}) (bbin s).
-Proof. intros X Y Z. apply BE_assoc. Qed.
+Proof. intros X Y Z. apply rtsc_lr. apply BE_assoc. Qed.
 #[export] Instance bbin_leftid frml s : LeftId (≡@{@bunch frml}) (bnul s) (bbin s).
-Proof. intros X. apply BE_unit_l. Qed.
+Proof. intros X. apply rtsc_lr. apply BE_unit_l. Qed.
 #[export] Instance bbin_rightid frml s : RightId (≡@{@bunch frml}) (bnul s) (bbin s).
-Proof. intros X. rewrite comm. apply BE_unit_l. Qed.
+Proof. intros X. rewrite comm. apply rtsc_lr. apply BE_unit_l. Qed.
 
 #[export] Instance fill_proper frml Π : Proper ((≡) ==> (≡@{@bunch frml})) (fill Π).
-Proof. intros X Y. apply BE_cong. Qed.
+Proof.
+  intros X Y.
+  eapply rtc_congruence. clear X Y.
+  intros X Y. apply sc_congruence. clear X Y.
+  intros X Y ?. by econstructor.
+Qed.
 
 #[export] Instance bbin_proper frml s : Proper ((≡) ==> (≡) ==> (≡@{@bunch frml})) (bbin s).
 Proof.
   intros Δ1 Δ2 H Δ1' Δ2' H'.
   change ((fill [CtxL s Δ1'] Δ1) ≡ (fill [CtxL s Δ2'] Δ2)).
   etrans.
-  { eapply BE_cong; eauto. }
+  { eapply fill_proper; eauto. }
   simpl.
   change ((fill [CtxR s Δ2] Δ1') ≡ (fill [CtxR s Δ2] Δ2')).
-  eapply BE_cong; eauto.
+  eapply fill_proper; eauto.
 Qed.
 
 Lemma fill_app {frml} (Π Π' : @bunch_ctx frml) (Δ : bunch) :
@@ -129,14 +128,24 @@ Proof.
   rewrite IH. f_equiv. by destruct F; simpl.
 Qed.
 
-Global Instance bunch_map_proper {A B} (f : A → B) : Proper ((≡) ==> (≡@{bunch})) (fmap f).
+Lemma bunch_map_proper' {A B} (f : A → B) : Proper ((bunch_equiv_step) ==> (≡@{bunch})) (fmap f).
 Proof.
-  intros Δ1 Δ2 HD. induction HD; simpl; eauto.
-  - etrans; eauto.
-  - rewrite !bunch_map_fill. by f_equiv.
+  intros Δ1 Δ2 HD.
+  induction HD; simpl.
+  - rewrite !bunch_map_fill; by f_equiv.
   - by rewrite left_id.
   - by rewrite comm.
   - by rewrite assoc.
+Qed.
+
+#[global] Instance bunch_map_proper {A B} (f : A → B) : Proper ((≡) ==> (≡@{bunch})) (fmap f).
+Proof.
+  intros Δ1 Δ2 HD.
+  induction HD as [|Δ1 Δ2 Δ3 HD1 HD]; first done.
+  etrans; last by apply IHHD.
+  destruct HD1 as [HD1 | HD1].
+  - by apply bunch_map_proper'.
+  - symmetry. by apply bunch_map_proper'.
 Qed.
 
 Section interp.
@@ -237,10 +246,9 @@ Section interp.
       apply (IHΠ (λ i, bunch_interp Δ1 ∧ P i)%I).
   Qed.
 
-  Global Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.
+  Lemma bunch_interp_proper' : Proper ((bunch_equiv_step) ==> (≡)) bunch_interp.
   Proof.
     intros Δ1 Δ2. induction 1; eauto.
-    - etrans; eassumption.
     - apply bi.equiv_entails_2.
       + apply bunch_interp_fill_mono; eauto.
         by apply bi.equiv_entails_1_1.
@@ -249,6 +257,13 @@ Section interp.
     - simpl. destruct s; by rewrite left_id.
     - simpl. destruct s; by rewrite comm.
     - simpl. destruct s; by rewrite assoc.
+  Qed.
+
+  #[global] Instance bunch_interp_proper : Proper ((≡) ==> (≡)) bunch_interp.
+  Proof.
+    intros Δ1 Δ2. induction 1 as [|Δ1 Δ2 Δ3 HD1 HD]; first done.
+    etrans; last by eassumption.
+    destruct HD1; [| symmetry]; by apply bunch_interp_proper'.
   Qed.
 
   Global Instance bunch_ctx_interp_mono Π : Proper ((⊢) ==> (⊢)) (bunch_ctx_interp Π).
